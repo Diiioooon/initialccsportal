@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS Admin | Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies Admin</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </nav>
+
+  <main class="admin-main">
+      <div class="split-right">
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <a href="{{ url_for('export_analytics_pdf') }}" class="btn-submit" style="background:#7b2fbe;">📄 Export PDF</a>
+          <a href="{{ url_for('export_analytics_csv') }}" class="btn-submit" style="background:#e6a817; color:#1a1a1a;">📊 Export CSV</a>
+        </div>
+        <h2 class="form-title">📊 Session Summary</h2>
+        <div class="admin-grid" style="margin-bottom:20px;">
+          <div class="admin-card">
+            <div class="admin-card-header">Total Sessions</div>
+            <div class="admin-card-body"><h2>{{ total_sessions }}</h2></div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header">Total Hours</div>
+            <div class="admin-card-body"><h2>{{ total_hours }} hrs</h2></div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header">Avg Duration</div>
+            <div class="admin-card-body"><h2>{{ avg_duration }} hrs</h2></div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header">Longest Session</div>
+            <div class="admin-card-body"><h2>{{ longest_session }} hrs</h2></div>
+          </div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <strong>Most Active Students:</strong>
+          <ul>
+            {% for s in top_students %}
+            <li>{{ s['name'] }} ({{ s['session_count'] }} sessions)</li>
+            {% endfor %}
+          </ul>
+          <p>Most Used Lab: {{ most_used_lab }} | Peak Hour: {{ peak_hour }}:00</p>
+        </div>
+        <h2 class="form-title">📈 Charts</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
+          <div>
+            <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">By Purpose</h3>
+            <canvas id="purposeChart"></canvas>
+          </div>
+          <div>
+            <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">By Laboratory</h3>
+            <canvas id="labChart"></canvas>
+          </div>
+        </div>
+        <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">Recent Daily Activity (Last 14 Days)</h3>
+        <canvas id="dateChart" style="max-height:200px;"></canvas>
+
+        <!-- Hidden data -->
+        <div id="purpose-data" style="display:none;">
+          {% for p in by_purpose %}<span class="lbl">{{ p['purpose'] }}</span><span class="val">{{ p['cnt'] }}</span>{% endfor %}
+        </div>
+        <div id="lab-data" style="display:none;">
+          {% for l in by_lab %}<span class="lbl">{{ l['lab'] }}</span><span class="val">{{ l['cnt'] }}</span>{% endfor %}
+        </div>
+        <div id="date-data" style="display:none;">
+          {% for d in by_date %}<span class="lbl">{{ d['date'] }}</span><span class="val">{{ d['cnt'] }}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function parseData(containerId) {
+      var labels = [], data = [];
+      var container = document.getElementById(containerId);
+      var lbls = container.querySelectorAll('.lbl');
+      var vals = container.querySelectorAll('.val');
+      for (var i = 0; i < lbls.length; i++) {
+        labels.push(lbls[i].textContent);
+        data.push(parseInt(vals[i].textContent));
+      }
+      return { labels, data };
+    }
+    var colors = ['#7b2fbe','#a855f7','#e6a817','#4c1d95','#d4960f','#9333ea','#f59e0b'];
+    var p = parseData('purpose-data');
+    new Chart(document.getElementById('purposeChart'), {
+      type: 'doughnut',
+      data: { labels: p.labels, datasets: [{ data: p.data, backgroundColor: colors }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+    });
+    var l = parseData('lab-data');
+    new Chart(document.getElementById('labChart'), {
+      type: 'bar',
+      data: { labels: l.labels, datasets: [{ label: 'Sessions', data: l.data, backgroundColor: '#7b2fbe' }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+    var d = parseData('date-data');
+    new Chart(document.getElementById('dateChart'), {
+      type: 'line',
+      data: { labels: d.labels, datasets: [{ label: 'Sessions', data: d.data, borderColor: '#e6a817', backgroundColor: 'rgba(230,168,23,0.1)', fill: true, tension: 0.3 }] },
+      options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  </script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+</body>
+</html>

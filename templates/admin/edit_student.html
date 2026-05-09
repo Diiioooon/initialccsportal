@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS Admin | Edit Student</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies Admin</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('admin_home') }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_software') }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}">Notifications</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle">🌙</button>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+        </div>
+        <h2 class="split-title">Edit Student</h2>
+        <p class="split-desc">{{ student['firstname'] }} {{ student['lastname'] }}</p>
+      </div>
+      <div class="split-right">
+        <h2 class="form-title">Edit Student Details</h2>
+        <form method="POST" class="form-card">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <div class="form-row">
+            <div class="form-field">
+              <label>ID Number</label>
+              <input name="idnum" value="{{ student['idnum'] }}" required>
+            </div>
+            <div class="form-field">
+              <label>Last Name</label>
+              <input name="lastname" value="{{ student['lastname'] }}" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>First Name</label>
+              <input name="firstname" value="{{ student['firstname'] }}" required>
+            </div>
+            <div class="form-field">
+              <label>Middle Name</label>
+              <input name="midname" value="{{ student['midname'] }}">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Email</label>
+            <input name="email" type="email" value="{{ student['email'] }}" required>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Course</label>
+              <select name="course" required>
+                <option value="BSIT" {{ 'selected' if student['course'] == 'BSIT' else '' }}>BSIT</option>
+                <option value="BSCS" {{ 'selected' if student['course'] == 'BSCS' else '' }}>BSCS</option>
+                <option value="BSIS" {{ 'selected' if student['course'] == 'BSIS' else '' }}>BSIS</option>
+                <option value="BSCpE" {{ 'selected' if student['course'] == 'BSCpE' else '' }}>BSCpE</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Year Level</label>
+              <select name="level" required>
+                <option value="1st Year" {{ 'selected' if student['level'] == '1st Year' else '' }}>1st Year</option>
+                <option value="2nd Year" {{ 'selected' if student['level'] == '2nd Year' else '' }}>2nd Year</option>
+                <option value="3rd Year" {{ 'selected' if student['level'] == '3rd Year' else '' }}>3rd Year</option>
+                <option value="4th Year" {{ 'selected' if student['level'] == '4th Year' else '' }}>4th Year</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Address</label>
+            <input name="address" value="{{ student['address'] }}" required>
+          </div>
+          <div class="form-field">
+            <label>Remaining Sessions</label>
+            <input name="sessions" type="number" value="{{ student['sessions'] }}" min="0">
+          </div>
+          <button type="submit" class="btn-create">Update Student</button>
+        </form>
+      </div>
+    </div>
+  </main>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

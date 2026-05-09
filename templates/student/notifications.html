@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Notifications</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}" class="active">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">Notifications</h2>
+        <p class="split-desc">Alerts and messages from the CCS admin.</p>
+      </div>
+
+      <div class="split-right">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 class="form-title" style="margin-bottom: 0;">Alerts &amp; Notifications</h2>
+          {% if notifications %}
+            <a href="{{ url_for('mark_all_notifications_read') }}" class="btn-outline-purple" style="font-size: 12px; padding: 6px 12px;">✓ Mark all as read</a>
+          {% endif %}
+        </div>
+
+        {% if notifications %}
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            {% for n in notifications %}
+            <div style="background:#fff8ed; border-left:4px solid #e6a817; padding:14px 16px; border-radius:6px;">
+              <p style="margin:0 0 4px 0; font-size:14px; font-weight:600; color:#333;">{{ n['title'] }}</p>
+              <p style="margin:0 0 6px 0; font-size:13px; color:#555;">{{ n['message'] }}</p>
+              <span style="font-size:11px; color:#aaa;">{{ n['date'] }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="color: var(--muted); font-size:14px;">No notifications at this time.</p>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
+    var flashDiv = document.getElementById('flash-messages');
+    if (flashDiv) {
+      var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+      for (var i = 0; i < messages.length; i++) {
+        var cat = messages[i][0], msg = messages[i][1];
+        if (cat === 'success') toastr.success(msg);
+        else if (cat === 'error') toastr.error(msg);
+        else toastr.info(msg);
+      }
+    }
+  </script>
+</body>
+</html>

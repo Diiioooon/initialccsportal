@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Reservation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+
+    /* Fix dropdown visibility in dark mode */
+    select option {
+      background: var(--white);
+      color: var(--text);
+    }
+
+    /* More spacing for readability */
+    .split-right .flat-field {
+      margin-bottom: 22px;
+    }
+    .form-actions {
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}" class="active">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">Reservation</h2>
+        <p class="split-desc">Reserve a laboratory slot for your sit-in session.</p>
+      </div>
+
+      <div class="split-right">
+        <h2 class="form-title">Make a Reservation</h2>
+        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+
+        <form method="POST" action="{{ url_for('student_reservation') }}">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+          <div class="flat-field">
+            <label>Laboratory</label>
+            <select name="lab" required>
+              <option value="">Select lab</option>
+              <option>524</option><option>526</option><option>528</option><option>530</option><option>542</option>
+            </select>
+          </div>
+          <div class="flat-field">
+            <label>Purpose</label>
+            <select name="purpose" required>
+              <option value="">Select purpose</option>
+              <option>C Programming</option><option>Java</option><option>PHP</option><option>ASP.Net</option><option>C#</option><option>Research</option><option>Other</option>
+            </select>
+          </div>
+          <div class="flat-field">
+            <label>Date</label>
+            <input type="date" name="date" required />
+          </div>
+          <div class="flat-field">
+            <label>Time</label>
+            <input type="time" name="time" required />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-create">Submit Reservation</button>
+            <a href="{{ url_for('student_home') }}" class="btn-already">Back</a>
+          </div>
+        </form>
+
+        <hr style="margin: 30px 0; border-color: var(--border);" />
+
+        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">My Reservations</h3>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Lab</th><th>Purpose</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for r in reservations %}
+              <tr>
+                <td>{{ r['lab'] }}</td><td>{{ r['purpose'] }}</td><td>{{ r['date'] }}</td><td>{{ r['time'] }}</td>
+                <td>
+                  {% if r['status'] == 'Pending' %}<span class="badge badge-pending">Pending</span>
+                  {% elif r['status'] == 'Approved' %}<span class="badge badge-active">Approved</span>
+                  {% else %}<span class="badge badge-done">Rejected</span>{% endif %}
+                </td>
+              </tr>
+              {% else %}<tr><td colspan="5" class="no-data">No reservations yet.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
+    var flashDiv = document.getElementById('flash-messages');
+    if (flashDiv) {
+      var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+      for (var i = 0; i < messages.length; i++) {
+        var cat = messages[i][0], msg = messages[i][1];
+        if (cat === 'success') toastr.success(msg);
+        else if (cat === 'error') toastr.error(msg);
+        else toastr.info(msg);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS Admin | Search</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies Admin</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+        </div>
+        <h2 class="split-title">Search</h2>
+        <p class="split-desc">Find students by ID, name, or email.</p>
+      </div>
+
+      <div class="split-right">
+        <h2 class="form-title">Student Search</h2>
+
+        <!-- Search Form -->
+        <form method="GET" action="{{ url_for('admin_search') }}" class="search-form">
+          <input type="text" name="q" placeholder="Enter ID, first name, or last name..." value="{{ query }}" class="search-input">
+          <button type="submit" class="btn-create">Search</button>
+        </form>
+
+        <!-- Results Table -->
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID Number</th>
+                <th>Name</th>
+                <th>Course</th>
+                <th>Level</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if students %}
+                {% for s in students %}
+                <tr>
+                  <td>{{ s['idnum'] }}</td>
+                  <td>{{ s['lastname'] }}, {{ s['firstname'] }} {{ s['midname'] }}</td>
+                  <td>{{ s['course'] }}</td>
+                  <td>{{ s['level'] }}</td>
+                  <td>
+                    <a href="{{ url_for('edit_student', id=s['id']) }}" class="btn-edit">Edit</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% elif query %}
+                <tr><td colspan="5" class="no-data">No students found matching "{{ query }}".</td></tr>
+              {% else %}
+                <tr><td colspan="5" class="no-data">Enter a search term to begin.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

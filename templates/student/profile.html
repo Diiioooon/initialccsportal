@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Edit Profile</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+
+    .profile-photo-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-photo-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid rgba(255,255,255,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.1);
+    }
+    .profile-photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-placeholder {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+    }
+    .btn-choose-photo {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-align: center;
+      display: inline-block;
+    }
+    .btn-choose-photo:hover {
+      background: rgba(255,255,255,0.25);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main class="auth-main">
+    <div class="split-card" style="max-width:1000px; min-height:620px;">
+      <!-- LEFT PANEL - Profile info & photo -->
+      <div class="split-left">
+        <div class="profile-photo-section">
+          <div class="profile-photo-preview">
+            {% if student['photo'] %}
+              <img src="{{ url_for('static', filename='uploads/' + student['photo']) }}" alt="Profile" id="preview-img" />
+            {% else %}
+              <span class="profile-placeholder" id="preview-placeholder">
+                {{ student['firstname'][0] }}{{ student['lastname'][0] }}
+              </span>
+              <img src="" alt="Profile" id="preview-img" style="display: none;" />
+            {% endif %}
+          </div>
+          <label for="photo-input" class="btn-choose-photo">📷 Choose Photo</label>
+        </div>
+
+        <h2 class="split-title" style="margin-top:16px;">{{ student['firstname'] }} {{ student['lastname'] }}</h2>
+        <p class="split-desc" style="margin-bottom:4px;"><strong>{{ student['course'] }}</strong> — {{ student['level'] }}</p>
+        <p class="split-desc" style="margin-top:8px;">Sessions Left: <strong style="color:#fff; font-size:20px;">{{ student['sessions'] }}</strong></p>
+
+        <!-- Extra student details (from your old layout) -->
+        <div style="width:100%; margin-top:20px;">
+          <div class="info-row">
+            <span class="info-lbl">ID Number</span>
+            <span class="info-val">{{ student['idnum'] }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Birthday</span>
+            <span class="info-val">March 3, 1990</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Gender</span>
+            <span class="info-val">Male</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Hometown</span>
+            <span class="info-val">Cebu City, Philippines</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Major</span>
+            <span class="info-val">{{ student['course'] }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Year</span>
+            <span class="info-val">{{ student['level'] }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Semester</span>
+            <span class="info-val">2nd Semester</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL - Edit Form -->
+      <div class="split-right">
+        <h2 class="form-title">Edit Profile</h2>
+        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <!-- Hidden file input triggered by the label above -->
+          <input type="file" id="photo-input" name="photo" accept="image/*" style="display:none;" />
+
+          <div class="name-row">
+            <div class="flat-field"><label>Last Name</label><input type="text" name="lastname" value="{{ student['lastname'] }}" required /></div>
+            <div class="flat-field"><label>First Name</label><input type="text" name="firstname" value="{{ student['firstname'] }}" required /></div>
+          </div>
+          <div class="flat-field"><label>Middle Name <span class="optional">(optional)</span></label><input type="text" name="midname" value="{{ student['midname'] or '' }}" /></div>
+          <div class="flat-field"><label>Email</label><input type="email" name="email" value="{{ student['email'] }}" required /></div>
+          <div class="name-row">
+            <div class="flat-field">
+              <label>Course</label>
+              <select name="course">
+                <option {% if student['course'] == 'BSIT' %}selected{% endif %}>BSIT</option>
+                <option {% if student['course'] == 'BSCS' %}selected{% endif %}>BSCS</option>
+                <option {% if student['course'] == 'BSIS' %}selected{% endif %}>BSIS</option>
+                <option {% if student['course'] == 'ACT' %}selected{% endif %}>ACT</option>
+              </select>
+            </div>
+            <div class="flat-field">
+              <label>Year Level</label>
+              <select name="level">
+                <option {% if student['level'] == '1st Year' %}selected{% endif %}>1st Year</option>
+                <option {% if student['level'] == '2nd Year' %}selected{% endif %}>2nd Year</option>
+                <option {% if student['level'] == '3rd Year' %}selected{% endif %}>3rd Year</option>
+                <option {% if student['level'] == '4th Year' %}selected{% endif %}>4th Year</option>
+              </select>
+            </div>
+          </div>
+          <div class="flat-field"><label>Address</label><input type="text" name="address" value="{{ student['address'] }}" required /></div>
+
+          <hr style="margin: 20px 0; border-color: var(--border);" />
+          <p style="font-size:12px; font-weight:600; color: var(--text); margin-bottom:12px;">
+            Change Password <span class="optional">(leave blank to keep current)</span>
+          </p>
+          <div class="name-row">
+            <div class="flat-field"><label>New Password</label><input type="password" name="new_password" placeholder="Min. 8 characters" /></div>
+            <div class="flat-field"><label>Confirm New Password</label><input type="password" name="confirm_password" placeholder="Repeat new password" /></div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 20px;">
+            <button type="submit" class="btn-create">Save Changes</button>
+            <a href="{{ url_for('student_home') }}" class="btn-already">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Photo preview
+    var photoInput = document.getElementById('photo-input');
+    var previewImg = document.getElementById('preview-img');
+    var placeholder = document.getElementById('preview-placeholder');
+
+    photoInput.addEventListener('change', function() {
+      var file = this.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          if (placeholder) placeholder.style.display = 'none';
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Flash messages
+    toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
+    var flashDiv = document.getElementById('flash-messages');
+    if (flashDiv) {
+      var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+      for (var i = 0; i < messages.length; i++) {
+        var cat = messages[i][0], msg = messages[i][1];
+        if (cat === 'success') toastr.success(msg);
+        else if (cat === 'error') toastr.error(msg);
+        else toastr.info(msg);
+      }
+    }
+  </script>
+</body>
+</html>

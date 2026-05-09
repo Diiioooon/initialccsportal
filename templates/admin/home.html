@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS Admin | Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies Admin</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+
+      <!-- LEFT PANEL -->
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+        </div>
+        <h2 class="split-title">CCS Admin</h2>
+        <p class="split-desc">College of Computer Studies Sit-in Monitoring System</p>
+        <div class="admin-stats">
+          <div class="stat-item">
+            <span class="stat-num">{{ total_students }}</span>
+            <span class="stat-lbl">Students</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">{{ current_sitin }}</span>
+            <span class="stat-lbl">Sit-in Now</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">{{ total_sitin }}</span>
+            <span class="stat-lbl">Total Sit-in</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="split-right">
+        <h2 class="form-title">📈 Statistics</h2>
+        <div class="chart-wrap">
+          <canvas id="courseChart"></canvas>
+        </div>
+        <div id="chart-data" style="display:none;">
+          {% for c in course_counts %}
+            <span class="chart-label">{{ c['course'] }}</span>
+            <span class="chart-value">{{ c['cnt'] }}</span>
+          {% endfor %}
+        </div>
+
+        <hr style="margin: 24px 0; border-color: var(--border);">
+
+        <h2 class="form-title">📣 Announcement</h2>
+        <form method="POST" action="{{ url_for('post_announcement') }}">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <textarea name="content" placeholder="New Announcement" class="announce-textarea"></textarea>
+          <button type="submit" class="btn-create" style="margin-bottom:20px;">Submit</button>
+        </form>
+
+        <h3 class="posted-title">Posted Announcements</h3>
+        {% for a in announcements %}
+          <div class="announce-item" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <p class="announce-meta">CCS Admin | {{ a['date'] }}</p>
+              <p class="announce-text">{{ a['content'] }}</p>
+            </div>
+            <a href="{{ url_for('delete_announcement', id=a['id']) }}"
+               class="btn-delete"
+               style="margin-left:12px; flex-shrink:0; font-size:11px; padding:4px 10px;"
+               onclick="return confirm('Delete this announcement?')">Delete</a>
+          </div>
+          <hr style="border-color: var(--border);">
+        {% else %}
+          <p style="color: var(--muted); font-size:13px;">No announcements yet.</p>
+        {% endfor %}
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    var labelSpans = document.querySelectorAll('#chart-data .chart-label');
+    var valueSpans = document.querySelectorAll('#chart-data .chart-value');
+    var labels = [], data = [];
+    for (var i = 0; i < labelSpans.length; i++) {
+      labels.push(labelSpans[i].textContent);
+      data.push(parseInt(valueSpans[i].textContent));
+    }
+    var ctx = document.getElementById('courseChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{ data: data, backgroundColor: ['#7b2fbe', '#a855f7', '#e6a817', '#4c1d95', '#d4960f'] }]
+      },
+      options: { responsive: true }
+    });
+  </script>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

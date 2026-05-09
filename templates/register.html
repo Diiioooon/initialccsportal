@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Register</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('community') }}">Community</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      {% if session.get('user_id') %}
+        <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+      {% else %}
+        <li><a href="{{ url_for('login') }}">Login</a></li>
+        <li><a href="{{ url_for('register') }}" class="btn-nav-register active">Register</a></li>
+      {% endif %}
+    </ul>
+    <!-- Theme toggle button added here -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </nav>
+
+  <main class="auth-main">
+    <div class="split-card">
+      <div class="split-left">
+        <p class="split-join">Join us at</p>
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">CCS Sit-in</h2>
+        <p class="split-desc">Create your account to start monitoring your sit-in hours and laboratory sessions at the University of Cebu.</p>
+      </div>
+      <div class="split-right">
+        <h2 class="form-title">Create your account</h2>
+
+        {% if error %}
+          <div class="alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('register') }}" novalidate>
+          <!-- CSRF token – THIS FIXES THE REGISTRATION -->
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+          <div class="flat-field">
+            <label>ID Number</label>
+            <input name="idnum" type="text" placeholder="e.g. 20-1234-567" value="{{ idnum or '' }}" />
+          </div>
+          <div class="name-row">
+            <div class="flat-field">
+              <label>Last Name</label>
+              <input name="lastname" type="text" placeholder="Last name" value="{{ lastname or '' }}" />
+            </div>
+            <div class="flat-field">
+              <label>First Name</label>
+              <input name="firstname" type="text" placeholder="First name" value="{{ firstname or '' }}" />
+            </div>
+          </div>
+          <div class="flat-field">
+            <label>Middle Name <span class="optional">(optional)</span></label>
+            <input name="midname" type="text" placeholder="Middle name" value="{{ midname or '' }}" />
+          </div>
+          <div class="flat-field">
+            <label>Email Address</label>
+            <input name="email" type="email" placeholder="you@gmail.com" value="{{ email or '' }}" />
+          </div>
+          <div class="name-row">
+            <div class="flat-field">
+              <label>Course</label>
+              <select name="course">
+                <option value="">Select course</option>
+                <option {% if course == 'BSIT' %}selected{% endif %}>BSIT</option>
+                <option {% if course == 'BSCS' %}selected{% endif %}>BSCS</option>
+                <option {% if course == 'BSIS' %}selected{% endif %}>BSIS</option>
+                <option {% if course == 'ACT'  %}selected{% endif %}>ACT</option>
+              </select>
+            </div>
+            <div class="flat-field">
+              <label>Year Level</label>
+              <select name="level">
+                <option value="">Select year</option>
+                <option {% if level == '1st Year' %}selected{% endif %}>1st Year</option>
+                <option {% if level == '2nd Year' %}selected{% endif %}>2nd Year</option>
+                <option {% if level == '3rd Year' %}selected{% endif %}>3rd Year</option>
+                <option {% if level == '4th Year' %}selected{% endif %}>4th Year</option>
+              </select>
+            </div>
+          </div>
+          <div class="flat-field">
+            <label>Address</label>
+            <input name="address" type="text" placeholder="e.g. Cebu City, Cebu" value="{{ address or '' }}" />
+          </div>
+          <div class="flat-field">
+            <label>Password</label>
+            <input name="password" type="password" placeholder="Min. 8 characters" />
+          </div>
+          <div class="flat-field">
+            <label>Confirm Password</label>
+            <input name="confirm" type="password" placeholder="Repeat password" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-create">Create Account</button>
+            <a href="{{ url_for('login') }}" class="btn-already">Already have an account?</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+
+  <!-- Load the theme toggle script -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

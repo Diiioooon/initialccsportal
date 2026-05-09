@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lab Availability</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .lab-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .pc-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .pc-item { padding: 5px 12px; border-radius: 20px; font-size: 13px; }
+    .available { background: #d4edda; color: #155724; }
+    .unavailable { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}" class="active">Lab Availability</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle">☀️</button>
+  </nav>
+
+  <main style="padding: 30px; max-width: 1000px; margin: auto;">
+    <h2 style="color: #fff;">Laboratory Availability</h2>
+    {% for lab in availability %}
+    <div class="lab-card">
+      <h3 style="color: #fff;">{{ lab['lab']['lab_name'] }}</h3>
+      <div class="pc-list">
+        {% for pc in lab['computers'] %}
+          <span class="pc-item {{ 'available' if pc['status'] == 'Available' else 'unavailable' }}">
+            {{ pc['pc_number'] }} ({{ pc['status'] }})
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </main>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

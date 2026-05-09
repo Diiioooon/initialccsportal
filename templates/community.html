@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Community</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999; transition: background 0.2s;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+
+    .community-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      color: var(--text);
+    }
+    .community-content h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+    .community-post {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .community-post h3 {
+      margin: 0 0 6px 0;
+      font-size: 16px;
+    }
+    .community-post .meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .community-post p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .placeholder-note {
+      background: rgba(255,255,255,0.03);
+      border-left: 4px solid var(--purple);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      <li><a href="{{ url_for('community') }}" class="active">Community</a></li>
+      <li><a href="{{ url_for('login') }}">Login</a></li>
+      <li><a href="{{ url_for('register') }}" class="btn-nav-register">Register</a></li>
+    </ul>
+  </nav>
+
+  <main class="community-content">
+    <h1>CCS Community</h1>
+    <div class="placeholder-note">
+      🚧 <strong>Community board coming soon!</strong> This space will allow students to share tips,
+      ask questions, and collaborate. Below are sample posts to show how it will look.
+    </div>
+
+    <div class="community-post">
+      <h3>💡 Study Tips for Programming Lab</h3>
+      <div class="meta">Juan Dela Cruz • 2 days ago</div>
+      <p>Always bring your own headphones for video tutorials, and don't forget to log your sit‑in hours correctly. Practice coding problems before your lab session to make the most of your time!</p>
+    </div>
+
+    <div class="community-post">
+      <h3>🔬 Research Group for Capstone</h3>
+      <div class="meta">Maria Santos • 5 days ago</div>
+      <p>We’re looking for two more members for our IoT‑based monitoring project. If you’re interested in hardware and Python, drop a message in the comments (coming soon)!</p>
+    </div>
+
+    <div class="community-post">
+      <h3>📢 Laboratory Etiquette Reminder</h3>
+      <div class="meta">CCS Admin • 1 week ago</div>
+      <p>Please remember to log out properly after your session and keep your workstations clean. Let’s maintain a pleasant environment for everyone.</p>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

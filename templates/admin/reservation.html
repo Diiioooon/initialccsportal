@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS Admin | Reservation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies Admin</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">Reservation</h2>
+        <p class="split-desc">Manage student laboratory reservations.</p>
+        <div class="student-info-box" style="margin-top:20px;">
+          <div class="info-row">
+            <span class="info-lbl">Pending</span>
+            <span class="info-val">{{ reservations | selectattr('status', 'equalto', 'Pending') | list | length }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Approved</span>
+            <span class="info-val">{{ reservations | selectattr('status', 'equalto', 'Approved') | list | length }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Rejected</span>
+            <span class="info-val">{{ reservations | selectattr('status', 'equalto', 'Rejected') | list | length }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="split-right">
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <a href="{{ url_for('export_reservations_pdf') }}" class="btn-submit" style="background:#7b2fbe;">📄 Export PDF</a>
+            <a href="{{ url_for('export_reservations_csv') }}" class="btn-submit" style="background:#e6a817; color:#1a1a1a;">📊 Export CSV</a>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <h2 class="form-title" style="margin-bottom:0;">Student Reservations</h2>
+          {% if reservations %}
+            <a href="{{ url_for('clear_reservations') }}"
+               class="btn-danger"
+               onclick="return confirm('Clear ALL reservation records? This cannot be undone.')">🗑 Clear All</a>
+          {% endif %}
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID Number</th>
+                <th>Name</th>
+                <th>Lab</th>
+                <th>Purpose</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in reservations %}
+              <tr>
+                <td>{{ r['idnum'] }}</td>
+                <td>{{ r['name'] }}</td>
+                <td>{{ r['lab'] }}</td>
+                <td>{{ r['purpose'] }}</td>
+                <td>{{ r['date'] }}</td>
+                <td>{{ r['time'] }}</td>
+                <td>
+                  {% if r['status'] == 'Pending' %}
+                    <span class="badge badge-pending">Pending</span>
+                  {% elif r['status'] == 'Approved' %}
+                    <span class="badge badge-active">Approved</span>
+                  {% else %}
+                    <span class="badge badge-done">Rejected</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if r['status'] == 'Pending' %}
+                    <a href="{{ url_for('approve_reservation', reservation_id=r['id']) }}"
+                       class="btn-edit"
+                       onclick="return confirm('Approve this reservation?')">Approve</a>
+                    <a href="{{ url_for('reject_reservation', reservation_id=r['id']) }}"
+                       class="btn-delete"
+                       onclick="return confirm('Reject this reservation?')">Reject</a>
+                  {% else %}
+                    <a href="{{ url_for('delete_reservation', reservation_id=r['id']) }}"
+                       class="btn-delete"
+                       onclick="return confirm('Delete this reservation?')">Delete</a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="no-data">No reservations yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
+  <script>
+  toastr.options = { "closeButton": true, "progressBar": true, "positionClass": "toast-top-center", "timeOut": 5000 };
+  var flashDiv = document.getElementById('flash-messages');
+  if (flashDiv) {
+    var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+    for (var i = 0; i < messages.length; i++) {
+      var category = messages[i][0], msg = messages[i][1];
+      if (category === 'success') toastr.success(msg);
+      else if (category === 'error') toastr.error(msg);
+      else toastr.info(msg);
+    }
+  }
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

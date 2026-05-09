@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCS | Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <span class="nav-title">College of Computer Studies</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+      <li><a href="{{ url_for('register') }}" class="btn-nav-register">Register</a></li>
+    </ul>
+    <button id="theme-toggle" class="theme-toggle">🌙</button>
+  </nav>
+
+  <main class="auth-main">
+    <div class="split-card">
+      <div class="split-left">
+        <div class="split-join">Welcome back!</div>
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+        </div>
+        <h2 class="split-title">CCS Portal</h2>
+        <p class="split-desc">Sign in to access your lab reservations and sit‑in records.</p>
+      </div>
+      <div class="split-right">
+        <h2 class="form-title">Sign In</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for cat, msg in messages %}
+              <div class="alert-{{ 'error' if cat == 'error' else 'success' }}">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <div class="flat-field">
+            <label for="login_input">Email or ID Number</label>
+            <input type="text" id="login_input" name="login_input" placeholder="you@example.com" required>
+          </div>
+          <div class="flat-field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+          </div>
+          <div class="forgot"><a href="#">Forgot password?</a></div>
+          <div class="form-actions">
+            <button type="submit" class="btn-create">Sign In</button>
+            <a href="{{ url_for('register') }}" class="btn-already">Create an account</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

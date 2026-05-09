@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS Sit-in Monitoring System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999; transition: background 0.2s;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('home') }}" class="active">Home</a></li>
+      <li><a href="{{ url_for('about') }}">About</a></li>
+      <li><a href="{{ url_for('community') }}">Community</a></li>
+      <li><a href="{{ url_for('login') }}">Login</a></li>
+      <li><a href="{{ url_for('register') }}" class="btn-nav-register">Register</a></li>
+    </ul>
+  </nav>
+
+  <main class="landing-main">
+    <div class="hero">
+      <div class="hero-logos">
+        <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" />
+        <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+      </div>
+      <h1>Laboratory Sit‑in Monitoring System</h1>
+      <p>College of Computer Studies — University of Cebu</p>
+      <div class="hero-btns">
+        <a href="{{ url_for('login') }}" class="btn-main">Sign In</a>
+        <a href="{{ url_for('register') }}" class="btn-outline">Create Account</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

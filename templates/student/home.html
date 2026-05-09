@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    body { margin: 0; }
+    .home-grid { display: grid; grid-template-columns: 240px 1fr 260px; gap: 16px; padding: 20px 24px; max-width: 1280px; margin: 0 auto; align-items: start; box-sizing: border-box; }
+    .profile-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .profile-avatar { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #7b2fbe, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #fff; font-family: 'Syne', sans-serif; overflow: hidden; margin-bottom: 10px; border: 3px solid rgba(168,85,247,0.4); }
+    .profile-avatar img { width:100%; height:100%; object-fit:cover; }
+    .profile-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; text-align: center; letter-spacing: 0.3px; }
+    .profile-sub { font-size: 12px; color: #a78bda; margin-bottom: 14px; }
+    .sessions-badge { width: 68px; height: 68px; border-radius: 50%; border: 3px solid #7b2fbe; display: flex; align-items: center; justify-content: center; margin: 6px 0 2px; }
+    .sessions-badge .num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; line-height: 1; }
+    .sessions-label { font-size: 9px; color: #a78bda; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+    .info-row { width: 100%; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 9px 13px; margin-top: 5px; }
+    .info-row .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+    .info-row .val { font-size: 13px; color: #ddd; }
+    .announce-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 22px; min-height: 420px; }
+    .announce-card h2 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; }
+    .announce-item { border-left: 3px solid #e6a817; padding: 10px 14px; margin-bottom: 10px; background: rgba(255,255,255,0.04); border-radius: 0 6px 6px 0; }
+    .announce-item .ann-text { font-size: 13px; color: #e0e0e0; margin: 0 0 4px 0; line-height: 1.5; }
+    .announce-item .ann-date { font-size: 11px; color: #666; }
+    .no-announce { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #555; font-size: 13px; gap: 12px; }
+
+    /* Rules card – now adapts to theme */
+    .rules-card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 18px 16px;
+      color: var(--text);
+    }
+    .rules-card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rules-uc { text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+    .rules-uc .uc-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; color: var(--purple); }
+    .rules-uc .uc-dept { font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+    .rules-reg-title { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text); text-align: center; margin-bottom: 6px; }
+    .rules-intro { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+    .rules-card ol { padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 7px; }
+    .rules-card ol li { font-size: 11px; color: var(--text); line-height: 1.5; }
+
+    .notification-badge { background-color: #ef4444; color: white; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: bold; margin-left: 6px; display: inline-block; vertical-align: middle; }
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}" class="active">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <div class="home-grid">
+      <div class="profile-card">
+        <div class="profile-avatar">
+          {% if student['photo'] %}
+            <img src="{{ url_for('static', filename='uploads/' + student['photo']) }}" alt="Photo" />
+          {% else %}
+            {{ student['firstname'][0] }}{{ student['lastname'][0] }}
+          {% endif %}
+        </div>
+        <p class="profile-name">{{ student['firstname'].upper() }} {{ student['lastname'].upper() }}</p>
+        <p class="profile-sub">{{ student['course'] }} &bull; {{ student['level'] }} Year</p>
+        <div class="sessions-badge"><span class="num">{{ student['sessions'] }}</span></div>
+        <p class="sessions-label">Sessions Left</p>
+        <div class="info-row"><span class="lbl">ID</span><span class="val">{{ student['idnum'] }}</span></div>
+        <div class="info-row"><span class="lbl">Email</span><span class="val">{{ student['email'] }}</span></div>
+        <div class="info-row"><span class="lbl">Address</span><span class="val">{{ student['address'] }}</span></div>
+        <div class="info-row"><span class="lbl">Session Stats</span><span class="val">{{ total_sessions }} sit-ins, {{ total_hours }} hrs</span></div>
+        <div class="info-row"><span class="lbl">Avg Duration</span><span class="val">{{ avg_duration }} hrs</span></div>
+      </div>
+      <div class="announce-card">
+        <h2>📣 Announcements</h2>
+        {% if announcements %}
+          {% for a in announcements %}
+          <div class="announce-item">
+            <p class="ann-text">{{ a['content'] }}</p>
+            <span class="ann-date">{{ a['date'] }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-announce">No announcements yet.</div>
+        {% endif %}
+      </div>
+      <div class="rules-card">
+        <p class="rules-card-title">📋 Rules &amp; Regulations</p>
+        <div class="rules-uc"><p class="uc-name">University of Cebu</p><p class="uc-dept">College of Computer Studies</p></div>
+        <p class="rules-reg-title">Laboratory Rules and Regulations</p>
+        <p class="rules-intro">To avoid embarrassment and maintain camaraderie at our laboratories, please observe the following:</p>
+        <ol>
+          {% for r in lab_rules %}<li>{{ r['rule'] }}</li>{% else %}<li>No rules posted yet.</li>{% endfor %}
+        </ol>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
+    var flashDiv = document.getElementById('flash-messages');
+    if (flashDiv) {
+      var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+      for (var i = 0; i < messages.length; i++) {
+        var cat = messages[i][0], msg = messages[i][1];
+        if (cat === 'success') toastr.success(msg);
+        else if (cat === 'error') toastr.error(msg);
+        else toastr.info(msg);
+      }
+    }
+  </script>
+</body>
+</html>

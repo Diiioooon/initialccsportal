@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Sit-in History</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    .feedback-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
+    .feedback-modal-overlay.open { display: flex; }
+    .feedback-modal { background: #fff; border-radius: 14px; padding: 28px; width: 460px; max-width: 90vw; color: #333; }
+    .feedback-modal h3 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 6px 0; }
+    .feedback-modal p { font-size: 12px; color: #888; margin: 0 0 16px 0; }
+    .feedback-modal textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; resize: vertical; box-sizing: border-box; }
+    .feedback-modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+    .btn-cancel { padding: 9px 18px; border-radius: 8px; border: 1px solid #ddd; background: #f5f5f5; font-size: 13px; cursor: pointer; }
+    .btn-feedback-row { padding: 4px 12px; border-radius: 6px; background: #7b2fbe; color: #fff; font-size: 12px; border: none; cursor: pointer; font-family: inherit; }
+    .btn-feedback-row:hover { background: #6a1fa8; }
+    .theme-toggle-float { position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%; background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main class="admin-main">
+    <div class="admin-split-card">
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">Sit-in History</h2>
+        <p class="split-desc">View your past sessions and leave feedback.</p>
+      </div>
+
+      <div class="split-right">
+        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+
+        <h2 class="form-title">My Sit-in Records</h2>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>#</th><th>Lab</th><th>Purpose</th><th>Date</th><th>Feedback</th></tr></thead>
+            <tbody>
+              {% for r in records %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ r['lab'] }}</td>
+                <td>{{ r['purpose'] }}</td>
+                <td>{{ r['date'] }}</td>
+                <td>
+                  <button class="btn-feedback-row" data-lab="{{ r['lab'] }}" data-purpose="{{ r['purpose'] }}" data-date="{{ r['date'] }}">Leave Feedback</button>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="no-data">No sit-in history yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Feedback Modal -->
+  <div class="feedback-modal-overlay" id="feedbackModal">
+    <div class="feedback-modal">
+      <h3>Leave Feedback</h3>
+      <p id="modal-session-info">Session info</p>
+      <form method="POST" action="{{ url_for('student_history') }}">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+        <input type="hidden" name="lab" id="modal-lab-input" />
+        <input type="hidden" name="purpose" id="modal-purpose-input" />
+        <input type="hidden" name="date" id="modal-date-input" />
+        <textarea name="message" rows="5" placeholder="Share your experience..." required></textarea>
+        <div class="feedback-modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeFeedback()">Cancel</button>
+          <button type="submit" class="btn-create">Submit Feedback</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const modal = document.getElementById('feedbackModal');
+      const modalInfo = document.getElementById('modal-session-info');
+      const modalLab = document.getElementById('modal-lab-input');
+      const modalPurpose = document.getElementById('modal-purpose-input');
+      const modalDate = document.getElementById('modal-date-input');
+      function openFeedback(lab, purpose, date) {
+        modalInfo.textContent = `Lab ${lab} · ${purpose} · ${date}`;
+        modalLab.value = lab; modalPurpose.value = purpose; modalDate.value = date;
+        modal.classList.add('open');
+      }
+      document.querySelectorAll('.btn-feedback-row').forEach(btn => {
+        btn.addEventListener('click', () => openFeedback(btn.dataset.lab, btn.dataset.purpose, btn.dataset.date));
+      });
+    });
+    function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
+    document.getElementById('feedbackModal').addEventListener('click', function(e) { if (e.target === this) closeFeedback(); });
+  </script>
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+</body>
+</html>
