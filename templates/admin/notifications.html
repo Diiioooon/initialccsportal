@@ -1,81 +1,110 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CCS Admin | Notifications</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <!-- Toastr (only for this page) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    /* Keep theme toggle style (already in original admin pages) */
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+  </style>
 </head>
 <body>
   <nav>
     <div class="nav-left">
-      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
-      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
       <span class="nav-title">College of Computer Studies Admin</span>
     </div>
     <ul class="nav-links">
-      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
-      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
-      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
-      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
-      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
-      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
-      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
-      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
-      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
-      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
-      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
-      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
-      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li><a href="{{ url_for('admin_home') }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}">Computers</a></li>
+      <li>
+        <a href="{{ url_for('admin_notifications') }}" class="active">
+          Notifications
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+        </a>
+      </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
   <main class="admin-main">
     <div class="admin-split-card">
       <div class="split-left">
         <div class="split-logo-circle">
-          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
         </div>
         <h2 class="split-title">Notifications</h2>
-        <p class="split-desc">Broadcast messages to students.</p>
-        {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+        <p class="split-desc">Send and view notifications.</p>
       </div>
+
       <div class="split-right">
-        <h2 class="form-title">Send Notification</h2>
-        <form method="POST" class="form-card" style="margin-bottom:20px;">
+        {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+
+        <!-- Send notification form -->
+        <h2 class="form-title">Send Global Notification</h2>
+        <form method="POST" class="form-card" style="margin-bottom:24px;">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-          <div class="form-field">
+          <div class="flat-field">
             <label>Title</label>
-            <input name="title" required>
+            <input name="title" placeholder="Notification title" required />
           </div>
-          <div class="form-field">
+          <div class="flat-field">
             <label>Message</label>
-            <textarea name="message" class="announce-textarea" required></textarea>
+            <textarea name="message" rows="3" placeholder="Write your message..." required></textarea>
           </div>
-          <button type="submit" class="btn-create">Send</button>
+          <button type="submit" class="btn-create">Send Notification</button>
         </form>
 
-        <h3>Sent Notifications</h3>
+        <!-- Mark all as read -->
+        <a href="{{ url_for('admin_mark_all_notifications_read') }}" class="btn-edit" style="margin-bottom:12px; display:inline-block;">
+          Mark all as read
+        </a>
+
+        <!-- Notification list -->
+        <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">All Notifications</h3>
         <div class="table-wrap">
           <table class="admin-table">
-            <thead>
-              <tr><th>Title</th><th>Message</th><th>Date</th><th>Actions</th></tr>
-            </thead>
+            <thead><tr><th>Date</th><th>Title</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
               {% for n in notifications %}
               <tr>
+                <td>{{ n['date'] }}</td>
                 <td>{{ n['title'] }}</td>
                 <td>{{ n['message'] }}</td>
-                <td>{{ n['date'] }}</td>
                 <td>
-                  <a href="{{ url_for('delete_notification', notif_id=n['id']) }}" class="btn-delete" onclick="return confirm('Delete this notification?')">Delete</a>
+                  {% if n['is_read'] %}<span class="badge badge-done">Read</span>
+                  {% else %}<span class="badge badge-pending">Unread</span>{% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('delete_notification', notif_id=n['id']) }}" class="btn-delete" style="font-size:10px;">Delete</a>
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="4" class="no-data">No notifications sent yet.</td></tr>
+              <tr><td colspan="5" class="no-data">No notifications yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -83,6 +112,26 @@
       </div>
     </div>
   </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <!-- Flash messages for toast (only on this page) -->
+  <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
+  <script>
+    toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
+    var flashDiv = document.getElementById('flash-messages');
+    if (flashDiv) {
+      var messages = JSON.parse(flashDiv.getAttribute('data-messages'));
+      for (var i = 0; i < messages.length; i++) {
+        var cat = messages[i][0], msg = messages[i][1];
+        if (cat === 'success') toastr.success(msg);
+        else if (cat === 'error') toastr.error(msg);
+        else toastr.info(msg);
+      }
+    }
+  </script>
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

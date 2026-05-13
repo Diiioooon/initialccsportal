@@ -1,24 +1,40 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CCS Admin | Computers</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    /* style the delete button to look like a link */
-    .btn-delete-form {
-      background: none;
-      border: none;
-      color: var(--gold);
-      font-size: 12px;
-      font-weight: 600;
+    /* Quick tab styles – adjust colours to match your theme */
+    .lab-tab {
+      display: inline-block;
+      padding: 8px 20px;
+      margin: 0 4px 4px 0;
+      background: #f0f0f0;
+      border-radius: 6px 6px 0 0;
       cursor: pointer;
-      padding: 0;
-      text-decoration: underline;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      color: #333;
     }
-    .btn-delete-form:hover {
-      color: var(--gold-hover);
+    .lab-tab.active {
+      background: var(--primary, #7b2fbe);
+      color: white;
+      border-color: var(--primary, #7b2fbe);
+    }
+    .lab-content {
+      display: none;
+      padding: 15px 0;
+    }
+    .lab-content.active {
+      display: block;
+    }
+    .pc-table-wrap {
+      max-height: 50vh;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -43,7 +59,14 @@
       <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
       <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
       <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li>
+  <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
+    Notifications
+    {% if unread_count > 0 %}
+      <span class="notification-badge">{{ unread_count }}</span>
+    {% endif %}
+  </a>
+</li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
@@ -51,24 +74,39 @@
 
   <main class="admin-main">
     <div class="admin-split-card">
+      <!-- LEFT -->
       <div class="split-left">
         <div class="split-logo-circle">
           <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
         </div>
         <h2 class="split-title">Computers</h2>
-        <p class="split-desc">Manage laboratory PCs.</p>
-        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
-        {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+        <p class="split-desc">Manage laboratory PC units.</p>
+        {% if error %}<div class="alert-error" style="margin-top:12px;">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert-success" style="margin-top:12px;">{{ success }}</div>{% endif %}
+
+        <!-- Summary stats -->
+        <div class="admin-stats" style="margin-top:20px;">
+          {% for lab in labs %}
+          <div class="stat-item">
+            <span class="stat-lbl">{{ lab['lab_name'] }}</span>
+            <span class="stat-num" style="font-size:14px;">
+              {{ computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length }} PCs
+            </span>
+          </div>
+          {% endfor %}
+        </div>
       </div>
 
+      <!-- RIGHT -->
       <div class="split-right">
+        <!-- Add PC form (unchanged) -->
         <h2 class="form-title">Add Computer Unit</h2>
-        <form method="POST" class="form-card" style="margin-bottom:20px;">
+        <form method="POST" class="form-card" style="margin-bottom:24px;">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
           <div class="form-row">
             <div class="form-field">
-              <label>PC Number (e.g., PC‑21)</label>
-              <input name="pc_number" required>
+              <label>PC Number (e.g., PC-21)</label>
+              <input name="pc_number" placeholder="PC-21" required>
             </div>
             <div class="form-field">
               <label>Laboratory</label>
@@ -79,7 +117,7 @@
               </select>
             </div>
           </div>
-          <div class="form-field">
+          <div class="form-field" style="max-width:200px;">
             <label>Status</label>
             <select name="status">
               <option>Available</option>
@@ -89,50 +127,103 @@
           <button type="submit" class="btn-create">Add PC</button>
         </form>
 
-        <h3>Computer Units</h3>
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>No.</th>
-                <th>PC Number</th>
-                <th>Lab</th>
-                <th>Status</th>
-                <th>Software</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for c in computers %}
-              <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ c['pc_number'] }}</td>
-                <td>{{ c['lab_name'] }}</td>
-                <td>
-                  <span class="badge {{ 'badge-active' if c['status'] == 'Available' else 'badge-done' }}">
-                    {{ c['status'] }}
-                  </span>
-                </td>
-                <td>
-                  <a href="{{ url_for('assign_software', pc_id=c['id']) }}" class="btn-edit">Manage</a>
-                </td>
-                <td>
-                  <!-- Delete via POST form – NO url_for needed -->
-                  <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-                    <button type="submit" class="btn-delete-form" onclick="return confirm('Delete this PC?')">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="6" class="no-data">No computer units yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <!-- LAB TABS -->
+        <div class="lab-tabs" style="margin-bottom:0;">
+          {% for lab in labs %}
+          <div class="lab-tab {% if loop.first %}active{% endif %}" data-lab="lab-{{ lab['id'] }}">
+            {{ lab['lab_name'] }}
+          </div>
+          {% endfor %}
         </div>
+
+        <!-- PC sections per lab -->
+        {% for lab in labs %}
+        {% set lab_computers = computers | selectattr('lab_name', 'equalto', lab['lab_name']) | list %}
+        <div id="lab-{{ lab['id'] }}" class="lab-content {% if loop.first %}active{% endif %}">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <h3 style="font-size:15px; font-weight:700; color:var(--text);">
+              🖥️ {{ lab['lab_name'] }}
+              <span style="font-size:12px; font-weight:400; color:var(--muted); margin-left:8px;">
+                {{ lab_computers | selectattr('status','equalto','Available') | list | length }} available
+                / {{ lab_computers | length }} total
+              </span>
+            </h3>
+          </div>
+
+          {% if lab_computers %}
+          <div class="pc-table-wrap table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>PC Number</th>
+                  <th>Status</th>
+                  <th>In Use</th>
+                  <th>Software</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in lab_computers %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td><strong>{{ c['pc_number'] }}</strong></td>
+                  <td>
+                    <span class="badge {{ 'badge-active' if c['status'] == 'Available' else 'badge-done' }}">
+                      {{ c['status'] }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if c['occupied'] %}
+                      <span class="badge badge-pending">In Use</span>
+                    {% else %}
+                      <span style="color:var(--muted); font-size:12px;">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ url_for('assign_software', pc_id=c['id']) }}" class="btn-edit">Manage</a>
+                  </td>
+                  <td>
+                    <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                      <button type="submit" class="btn-delete"
+                        onclick="return confirm('Delete {{ c.pc_number }} from {{ lab.lab_name }}?')"
+                        style="font-size:12px; padding:4px 10px;">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p style="font-size:13px; color:var(--muted); padding:10px 0;">No PCs in this lab yet.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
       </div>
     </div>
   </main>
+
+  <!-- Tab switching JavaScript -->
+  <script>
+    const tabs = document.querySelectorAll('.lab-tab');
+    const contents = document.querySelectorAll('.lab-content');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function () {
+        // Remove active from all tabs
+        tabs.forEach(t => t.classList.remove('active'));
+        // Hide all contents
+        contents.forEach(c => c.classList.remove('active'));
+        // Activate clicked tab
+        this.classList.add('active');
+        // Show corresponding content
+        const target = document.getElementById(this.dataset.lab);
+        if (target) target.classList.add('active');
+      });
+    });
+  </script>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

@@ -27,10 +27,14 @@
       <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
       <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
       <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li>
+        <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
+          Notifications
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+        </a>
+      </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
   <main class="admin-main">
@@ -53,6 +57,7 @@
                 <th>Name</th>
                 <th>Purpose</th>
                 <th>Lab</th>
+                <th>PC</th>
                 <th>Session</th>
                 <th>Status</th>
                 <th>Date</th>
@@ -68,6 +73,7 @@
                 <td>{{ r['name'] }}</td>
                 <td>{{ r['purpose'] }}</td>
                 <td>{{ r['lab'] }}</td>
+                <td>{{ r['pc_number'] if r['pc_number'] else '-' }}</td>
                 <td>{{ r['session'] }}</td>
                 <td><span class="badge badge-active">Active</span></td>
                 <td>{{ r['date'] }}</td>
@@ -77,7 +83,7 @@
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="10" class="no-data">No active sit-in sessions.</td></tr>
+              <tr><td colspan="11" class="no-data">No active sit-in sessions.</td></tr>
               {% endfor %}
             </tbody>
           </table>

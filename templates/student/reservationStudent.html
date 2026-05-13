@@ -17,20 +17,9 @@
       z-index: 999;
     }
     html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
-
-    /* Fix dropdown visibility in dark mode */
-    select option {
-      background: var(--white);
-      color: var(--text);
-    }
-
-    /* More spacing for readability */
-    .split-right .flat-field {
-      margin-bottom: 22px;
-    }
-    .form-actions {
-      margin-top: 14px;
-    }
+    select option { background: var(--white); color: var(--text); }
+    .split-right .flat-field { margin-bottom: 22px; }
+    .form-actions { margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -51,9 +40,7 @@
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
-          {% if unread_count > 0 %}
-            <span class="notification-badge">{{ unread_count }}</span>
-          {% endif %}
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
         </a>
       </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
@@ -79,16 +66,33 @@
 
           <div class="flat-field">
             <label>Laboratory</label>
-            <select name="lab" required>
+            <select name="lab" id="lab-select" required>
               <option value="">Select lab</option>
-              <option>524</option><option>526</option><option>528</option><option>530</option><option>542</option>
+              {% for lab in labs %}
+                <option value="{{ lab['lab_name'] }}">{{ lab['lab_name'] }}</option>
+              {% endfor %}
             </select>
           </div>
+
+          <div class="flat-field">
+            <label>Assign PC (optional)</label>
+            <select name="pc_id" id="pc-select">
+              <option value="">-- Select a lab first --</option>
+            </select>
+            <small id="pc-loading" style="display:none; color:var(--muted);">Loading PCs...</small>
+          </div>
+
           <div class="flat-field">
             <label>Purpose</label>
             <select name="purpose" required>
               <option value="">Select purpose</option>
-              <option>C Programming</option><option>Java</option><option>PHP</option><option>ASP.Net</option><option>C#</option><option>Research</option><option>Other</option>
+              <option>C Programming</option>
+              <option>Java</option>
+              <option>PHP</option>
+              <option>ASP.Net</option>
+              <option>C#</option>
+              <option>Research</option>
+              <option>Other</option>
             </select>
           </div>
           <div class="flat-field">
@@ -110,18 +114,22 @@
         <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">My Reservations</h3>
         <div class="table-wrap">
           <table class="admin-table">
-            <thead><tr><th>Lab</th><th>Purpose</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+            <thead><tr><th>Lab</th><th>Purpose</th><th>Date</th><th>Time</th><th>PC</th><th>Status</th></tr></thead>
             <tbody>
               {% for r in reservations %}
               <tr>
-                <td>{{ r['lab'] }}</td><td>{{ r['purpose'] }}</td><td>{{ r['date'] }}</td><td>{{ r['time'] }}</td>
+                <td>{{ r['lab'] }}</td>
+                <td>{{ r['purpose'] }}</td>
+                <td>{{ r['date'] }}</td>
+                <td>{{ r['time'] }}</td>
+                <td>{{ r['pc_number'] if r['pc_number'] else '—' }}</td>
                 <td>
                   {% if r['status'] == 'Pending' %}<span class="badge badge-pending">Pending</span>
                   {% elif r['status'] == 'Approved' %}<span class="badge badge-active">Approved</span>
                   {% else %}<span class="badge badge-done">Rejected</span>{% endif %}
                 </td>
               </tr>
-              {% else %}<tr><td colspan="5" class="no-data">No reservations yet.</td></tr>{% endfor %}
+              {% else %}<tr><td colspan="6" class="no-data">No reservations yet.</td></tr>{% endfor %}
             </tbody>
           </table>
         </div>
@@ -129,11 +137,51 @@
     </div>
   </main>
 
+  <!-- ... rest unchanged ... -->
+
   <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
   <button id="theme-toggle" class="theme-toggle-float">🌙</button>
 
   <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+  <!-- AJAX for PC dropdown -->
+  <script>
+    const labSelect = document.getElementById('lab-select');
+    const pcSelect = document.getElementById('pc-select');
+    const pcLoading = document.getElementById('pc-loading');
+
+    labSelect.addEventListener('change', function () {
+      const lab = this.value;
+      pcSelect.innerHTML = '<option value="">-- Choose PC (optional) --</option>';
+      pcLoading.style.display = 'none';
+      if (!lab) return;
+
+      pcLoading.style.display = 'inline';
+      fetch('/student/get_pcs/' + encodeURIComponent(lab))
+        .then(response => response.json())
+        .then(data => {
+          pcLoading.style.display = 'none';
+          if (!data.pcs || data.pcs.length === 0) {
+            pcSelect.innerHTML = '<option value="">No available PCs</option>';
+            return;
+          }
+          pcSelect.innerHTML = '<option value="">-- Choose PC (optional) --</option>';
+          data.pcs.forEach(pc => {
+            if (pc.occupied == 1 || pc.status === 'Unavailable') return;
+            const opt = document.createElement('option');
+            opt.value = pc.id;
+            opt.textContent = pc.pc_number + ' (Available)';
+            pcSelect.appendChild(opt);
+          });
+        })
+        .catch(err => {
+          pcLoading.style.display = 'none';
+          pcSelect.innerHTML = '<option value="">Error loading PCs</option>';
+        });
+    });
+  </script>
+
   <script>
     toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-center", timeOut: 5000 };
     var flashDiv = document.getElementById('flash-messages');

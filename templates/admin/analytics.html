@@ -31,70 +31,127 @@
       <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
   <main class="admin-main">
+    <div class="admin-split-card">
+
+      <!-- LEFT SIDEBAR -->
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" />
+        </div>
+        <h2 class="split-title">Analytics</h2>
+        <p class="split-desc">Sit-in usage statistics and trends.</p>
+
+        <!-- Quick stats in sidebar -->
+        <div class="admin-stats" style="margin-top:24px;">
+          <div class="stat-item">
+            <span class="stat-lbl">Total Sessions</span>
+            <span class="stat-num">{{ total_sessions }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-lbl">Total Hours</span>
+            <span class="stat-num">{{ total_hours }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-lbl">Avg Duration</span>
+            <span class="stat-num">{{ avg_duration }}h</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-lbl">Longest Session</span>
+            <span class="stat-num">{{ longest_session }}h</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-lbl">Most Used Lab</span>
+            <span class="stat-num" style="font-size:13px;">{{ most_used_lab }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-lbl">Peak Hour</span>
+            <span class="stat-num" style="font-size:13px;">{{ peak_hour }}:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT CONTENT -->
       <div class="split-right">
-        <div style="display:flex; gap:10px; margin-bottom:14px;">
+
+        <!-- Export buttons -->
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
           <a href="{{ url_for('export_analytics_pdf') }}" class="btn-submit" style="background:#7b2fbe;">📄 Export PDF</a>
           <a href="{{ url_for('export_analytics_csv') }}" class="btn-submit" style="background:#e6a817; color:#1a1a1a;">📊 Export CSV</a>
         </div>
-        <h2 class="form-title">📊 Session Summary</h2>
-        <div class="admin-grid" style="margin-bottom:20px;">
-          <div class="admin-card">
-            <div class="admin-card-header">Total Sessions</div>
-            <div class="admin-card-body"><h2>{{ total_sessions }}</h2></div>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-header">Total Hours</div>
-            <div class="admin-card-body"><h2>{{ total_hours }} hrs</h2></div>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-header">Avg Duration</div>
-            <div class="admin-card-body"><h2>{{ avg_duration }} hrs</h2></div>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-header">Longest Session</div>
-            <div class="admin-card-body"><h2>{{ longest_session }} hrs</h2></div>
-          </div>
-        </div>
-        <div style="margin-bottom:20px;">
-          <strong>Most Active Students:</strong>
-          <ul>
-            {% for s in top_students %}
-            <li>{{ s['name'] }} ({{ s['session_count'] }} sessions)</li>
-            {% endfor %}
-          </ul>
-          <p>Most Used Lab: {{ most_used_lab }} | Peak Hour: {{ peak_hour }}:00</p>
-        </div>
-        <h2 class="form-title">📈 Charts</h2>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
-          <div>
-            <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">By Purpose</h3>
-            <canvas id="purposeChart"></canvas>
-          </div>
-          <div>
-            <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">By Laboratory</h3>
-            <canvas id="labChart"></canvas>
-          </div>
-        </div>
-        <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">Recent Daily Activity (Last 14 Days)</h3>
-        <canvas id="dateChart" style="max-height:200px;"></canvas>
 
-        <!-- Hidden data -->
+        <!-- Most Active Students -->
+        <div style="margin-bottom:18px;">
+          <h3 class="form-title" style="font-size:15px; margin-bottom:10px;">🏆 Most Active Students</h3>
+          {% if top_students %}
+          <table class="admin-table" style="font-size:13px;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>ID Number</th>
+                <th>Sessions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in top_students %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ s['name'] }}</td>
+                <td>{{ s['idnum'] }}</td>
+                <td>{{ s['session_count'] }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p style="font-size:13px; color:var(--muted);">No session data yet.</p>
+          {% endif %}
+        </div>
+
+        <!-- Charts -->
+        <h3 class="form-title" style="font-size:15px; margin-bottom:12px;">📈 Charts</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+          <div>
+            <p style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--muted);">BY PURPOSE</p>
+            <canvas id="purposeChart" style="max-height:200px;"></canvas>
+          </div>
+          <div>
+            <p style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--muted);">BY LABORATORY</p>
+            <canvas id="labChart" style="max-height:200px;"></canvas>
+          </div>
+        </div>
+
+        <p style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--muted);">DAILY ACTIVITY — LAST 14 DAYS</p>
+        <canvas id="dateChart" style="max-height:180px;"></canvas>
+
+        <!-- Hidden data for charts -->
         <div id="purpose-data" style="display:none;">
-          {% for p in by_purpose %}<span class="lbl">{{ p['purpose'] }}</span><span class="val">{{ p['cnt'] }}</span>{% endfor %}
+          {% for p in by_purpose %}
+            <span class="lbl">{{ p['purpose'] }}</span>
+            <span class="val">{{ p['cnt'] }}</span>
+          {% endfor %}
         </div>
         <div id="lab-data" style="display:none;">
-          {% for l in by_lab %}<span class="lbl">{{ l['lab'] }}</span><span class="val">{{ l['cnt'] }}</span>{% endfor %}
+          {% for l in by_lab %}
+            <span class="lbl">{{ l['lab'] }}</span>
+            <span class="val">{{ l['cnt'] }}</span>
+          {% endfor %}
         </div>
         <div id="date-data" style="display:none;">
-          {% for d in by_date %}<span class="lbl">{{ d['date'] }}</span><span class="val">{{ d['cnt'] }}</span>{% endfor %}
+          {% for d in by_date %}
+            <span class="lbl">{{ d['date'] }}</span>
+            <span class="val">{{ d['cnt'] }}</span>
+          {% endfor %}
         </div>
-      </div>
-    </div>
+
+      </div><!-- end split-right -->
+    </div><!-- end admin-split-card -->
   </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
 
   <script>
     function parseData(containerId) {
@@ -103,32 +160,68 @@
       var lbls = container.querySelectorAll('.lbl');
       var vals = container.querySelectorAll('.val');
       for (var i = 0; i < lbls.length; i++) {
-        labels.push(lbls[i].textContent);
-        data.push(parseInt(vals[i].textContent));
+        labels.push(lbls[i].textContent.trim());
+        data.push(parseInt(vals[i].textContent.trim()));
       }
-      return { labels, data };
+      return { labels: labels, data: data };
     }
-    var colors = ['#7b2fbe','#a855f7','#e6a817','#4c1d95','#d4960f','#9333ea','#f59e0b'];
+
+    var chartColors = ['#7b2fbe','#a855f7','#e6a817','#4c1d95','#d4960f','#9333ea','#f59e0b'];
+
     var p = parseData('purpose-data');
     new Chart(document.getElementById('purposeChart'), {
       type: 'doughnut',
-      data: { labels: p.labels, datasets: [{ data: p.data, backgroundColor: colors }] },
-      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+      data: {
+        labels: p.labels,
+        datasets: [{ data: p.data, backgroundColor: chartColors }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 }, color: '#888' } }
+        }
+      }
     });
+
     var l = parseData('lab-data');
     new Chart(document.getElementById('labChart'), {
       type: 'bar',
-      data: { labels: l.labels, datasets: [{ label: 'Sessions', data: l.data, backgroundColor: '#7b2fbe' }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      data: {
+        labels: l.labels,
+        datasets: [{ label: 'Sessions', data: l.data, backgroundColor: '#7b2fbe', borderRadius: 4 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888' } }, x: { ticks: { color: '#888' } } }
+      }
     });
+
     var d = parseData('date-data');
     new Chart(document.getElementById('dateChart'), {
       type: 'line',
-      data: { labels: d.labels, datasets: [{ label: 'Sessions', data: d.data, borderColor: '#e6a817', backgroundColor: 'rgba(230,168,23,0.1)', fill: true, tension: 0.3 }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      data: {
+        labels: d.labels,
+        datasets: [{
+          label: 'Sessions',
+          data: d.data,
+          borderColor: '#e6a817',
+          backgroundColor: 'rgba(230,168,23,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: '#888' } },
+          x: { ticks: { color: '#888', maxRotation: 45 } }
+        }
+      }
     });
   </script>
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
-  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
 </body>
 </html>

@@ -636,3 +636,48 @@ html[data-theme="light"] .settings-divider {
 html[data-theme="light"] .settings-version {
   color: #bbb;
 }
+
+/* ========== Notification Items ========== */
+.notif-item {
+  padding: 14px 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--border);
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: background 0.2s;
+}
+.notif-unread {
+  border-left-color: var(--gold);
+  background: rgba(230, 168, 23, 0.06);
+}
+html[data-theme="light"] .notif-unread {
+  background: rgba(230, 168, 23, 0.08);
+}
+.notif-title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.notif-msg {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.notif-date {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ========== Notification Badge (nav) ========== */
+.notification-badge {
+  background: var(--gold);
+  color: #1a1a1a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-left: 4px;
+  vertical-align: middle;
+}

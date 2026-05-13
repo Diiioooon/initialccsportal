@@ -42,9 +42,7 @@
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
-          {% if unread_count > 0 %}
-            <span class="notification-badge">{{ unread_count }}</span>
-          {% endif %}
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
         </a>
       </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
@@ -68,7 +66,17 @@
         <h2 class="form-title">My Sit-in Records</h2>
         <div class="table-wrap">
           <table class="admin-table">
-            <thead><tr><th>#</th><th>Lab</th><th>Purpose</th><th>Date</th><th>Feedback</th></tr></thead>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Lab</th>
+                <th>Purpose</th>
+                <th>Date</th>
+                <th>PC Used</th>
+                <th>Duration</th>
+                <th>Feedback</th>
+              </tr>
+            </thead>
             <tbody>
               {% for r in records %}
               <tr>
@@ -76,12 +84,18 @@
                 <td>{{ r['lab'] }}</td>
                 <td>{{ r['purpose'] }}</td>
                 <td>{{ r['date'] }}</td>
+                <td>{{ r['pc_number'] if r['pc_number'] else 'N/A' }}</td>
+                <td>{{ r['duration'] }}</td>
                 <td>
-                  <button class="btn-feedback-row" data-lab="{{ r['lab'] }}" data-purpose="{{ r['purpose'] }}" data-date="{{ r['date'] }}">Leave Feedback</button>
+                  <button class="btn-feedback-row"
+                          data-lab="{{ r['lab'] }}"
+                          data-purpose="{{ r['purpose'] }}"
+                          data-date="{{ r['date'] }}"
+                          data-pc-id="{{ r['pc_id'] if r['pc_id'] else '' }}">Leave Feedback</button>
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="5" class="no-data">No sit-in history yet.</td></tr>
+              <tr><td colspan="7" class="no-data">No sit-in history yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -90,7 +104,7 @@
     </div>
   </main>
 
-  <!-- Feedback Modal -->
+  <!-- Feedback Modal (with pc_id hidden input) -->
   <div class="feedback-modal-overlay" id="feedbackModal">
     <div class="feedback-modal">
       <h3>Leave Feedback</h3>
@@ -100,6 +114,7 @@
         <input type="hidden" name="lab" id="modal-lab-input" />
         <input type="hidden" name="purpose" id="modal-purpose-input" />
         <input type="hidden" name="date" id="modal-date-input" />
+        <input type="hidden" name="pc_id" id="modal-pc-input" />
         <textarea name="message" rows="5" placeholder="Share your experience..." required></textarea>
         <div class="feedback-modal-actions">
           <button type="button" class="btn-cancel" onclick="closeFeedback()">Cancel</button>
@@ -119,13 +134,24 @@
       const modalLab = document.getElementById('modal-lab-input');
       const modalPurpose = document.getElementById('modal-purpose-input');
       const modalDate = document.getElementById('modal-date-input');
-      function openFeedback(lab, purpose, date) {
+      const modalPcInput = document.getElementById('modal-pc-input');
+
+      function openFeedback(lab, purpose, date, pcId) {
         modalInfo.textContent = `Lab ${lab} · ${purpose} · ${date}`;
-        modalLab.value = lab; modalPurpose.value = purpose; modalDate.value = date;
+        modalLab.value = lab;
+        modalPurpose.value = purpose;
+        modalDate.value = date;
+        modalPcInput.value = pcId || '';
         modal.classList.add('open');
       }
+
       document.querySelectorAll('.btn-feedback-row').forEach(btn => {
-        btn.addEventListener('click', () => openFeedback(btn.dataset.lab, btn.dataset.purpose, btn.dataset.date));
+        btn.addEventListener('click', () => openFeedback(
+          btn.dataset.lab,
+          btn.dataset.purpose,
+          btn.dataset.date,
+          btn.dataset.pcId
+        ));
       });
     });
     function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }

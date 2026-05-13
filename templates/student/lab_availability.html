@@ -47,10 +47,15 @@
       background: #f8d7da;
       color: #721c24;
     }
+    .in-use {
+      background: #fff3cd;
+      color: #856404;
+    }
   </style>
 </head>
 <body>
   <nav>
+    <!-- same navbar -->
     <div class="nav-left">
       <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
       <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
@@ -67,9 +72,7 @@
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
-          {% if unread_count > 0 %}
-            <span class="notification-badge">{{ unread_count }}</span>
-          {% endif %}
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
         </a>
       </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
@@ -88,9 +91,13 @@
         {% endif %}
         <div class="pc-list">
           {% for pc in lab['computers'] %}
-            <span class="pc-item {{ 'available' if pc['status'] == 'Available' else 'unavailable' }}">
-              {{ pc['pc_number'] }} – {{ pc['status'] }}
-            </span>
+            {% if pc['occupied'] %}
+              <span class="pc-item in-use">{{ pc['pc_number'] }} – In Use</span>
+            {% elif pc['status'] == 'Unavailable' %}
+              <span class="pc-item unavailable">{{ pc['pc_number'] }} – Unavailable</span>
+            {% else %}
+              <span class="pc-item available">{{ pc['pc_number'] }} – Available</span>
+            {% endif %}
           {% else %}
             <p style="color: var(--muted);">No PCs assigned to this lab.</p>
           {% endfor %}

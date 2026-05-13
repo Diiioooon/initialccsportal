@@ -27,12 +27,18 @@
       <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
       <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
       <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li>
+  <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
+    Notifications
+    {% if unread_count > 0 %}
+      <span class="notification-badge">{{ unread_count }}</span>
+    {% endif %}
+  </a>
+</li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
-
   <main class="admin-main">
     <div class="admin-split-card">
       <div class="split-left">

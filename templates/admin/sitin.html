@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +27,14 @@
       <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
       <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
       <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">Notifications</a></li>
+      <li>
+  <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
+    Notifications
+    {% if unread_count > 0 %}
+      <span class="notification-badge">{{ unread_count }}</span>
+    {% endif %}
+  </a>
+</li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
@@ -40,35 +47,172 @@
           <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
         </div>
         <h2 class="split-title">Sit-in</h2>
-        <p class="split-desc">Register a walk‑in student.</p>
-        {% if error %}<div class="alert-error">{{ error }}</div>{% endif %}
+        <p class="split-desc">Register a walk-in student and assign a PC.</p>
+        {% if error %}
+        <div class="alert-error" style="margin-top:16px;">{{ error }}</div>
+        {% endif %}
       </div>
+
       <div class="split-right">
-        <h2 class="form-title">Start Sit‑in Session</h2>
+        <h2 class="form-title">Start Sit-in Session</h2>
         <form method="POST" class="form-card">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
           <div class="form-field">
             <label>Student ID Number</label>
-            <input name="idnum" required>
+            <input name="idnum" placeholder="e.g. 2021-00123" required>
           </div>
+
           <div class="form-field">
             <label>Purpose</label>
-            <input name="purpose" required>
-          </div>
-          <div class="form-field">
-            <label>Laboratory</label>
-            <select name="lab" required>
-              <option value="Lab 1">Lab 1</option>
-              <option value="Lab 2">Lab 2</option>
-              <option value="Lab 3">Lab 3</option>
-              <option value="Lab 4">Lab 4</option>
+            <select name="purpose" required>
+                <option value="">Select purpose</option>
+                <option>C Programming</option>
+                <option>Java</option>
+                <option>PHP</option>
+                <option>ASP.Net</option>
+                <option>C#</option>
+                <option>Research</option>
+                <option>Other</option>
             </select>
           </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Laboratory</label>
+              <select name="lab" id="lab-select" required>
+                <option value="">-- Select Lab --</option>
+                {% for lab in labs %}
+                <option value="{{ lab['lab_name'] }}">{{ lab['lab_name'] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Assign PC</label>
+              <select name="pc_id" id="pc-select" required>
+                <option value="">-- Select Lab First --</option>
+              </select>
+              <small id="loading-msg" style="display:none; color:var(--muted);">Loading PCs...</small>
+            </div>
+          </div>
+
+          <!-- PC status grid shown after lab selected -->
+          <div id="pc-grid-wrap" style="display:none; margin-bottom:16px;">
+            <p style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">PC Status</p>
+            <div id="pc-grid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          </div>
+
           <button type="submit" class="btn-create">Start Session</button>
         </form>
       </div>
     </div>
   </main>
+
+  <script>
+    const labSelect = document.getElementById('lab-select');
+    const pcSelect = document.getElementById('pc-select');
+    const pcGrid = document.getElementById('pc-grid');
+    const pcGridWrap = document.getElementById('pc-grid-wrap');
+    const loadingMsg = document.getElementById('loading-msg');
+
+    labSelect.addEventListener('change', function () {
+      const lab = this.value;
+      // Reset
+      pcSelect.innerHTML = '<option value="">-- Select Lab First --</option>';
+      pcGrid.innerHTML = '';
+      pcGridWrap.style.display = 'none';
+      loadingMsg.style.display = 'none';
+
+      if (!lab) return;
+
+      // Show loading
+      loadingMsg.style.display = 'inline';
+
+      fetch('/admin/get_pcs/' + encodeURIComponent(lab))
+        .then(function (response) {
+          if (!response.ok) throw new Error('Network error');
+          return response.json();
+        })
+        .then(function (data) {
+          loadingMsg.style.display = 'none';
+
+          if (!data.pcs || data.pcs.length === 0) {
+            pcSelect.innerHTML = '<option value="">No PCs in this lab</option>';
+            return;
+          }
+
+          pcSelect.innerHTML = '<option value="">-- Choose a PC --</option>';
+
+          data.pcs.forEach(function (pc) {
+            const occupied = pc.occupied == 1;
+            const unavailable = pc.status === 'Unavailable';
+            const disabled = occupied || unavailable;
+
+            // Dropdown option
+            const opt = document.createElement('option');
+            opt.value = pc.id;
+            let label = pc.pc_number;
+            if (occupied) label += ' (In Use)';
+            else if (unavailable) label += ' (Unavailable)';
+            else label += ' (Available)';
+            opt.textContent = label;
+            opt.disabled = disabled;
+            pcSelect.appendChild(opt);
+
+            // Visual badge
+            const badge = document.createElement('div');
+            let bgColor, textColor, borderColor, icon;
+            if (occupied) {
+              bgColor = 'rgba(230,168,23,0.15)';
+              textColor = '#e6a817';
+              borderColor = '#e6a817';
+              icon = '🔴';
+            } else if (unavailable) {
+              bgColor = 'rgba(136,136,136,0.15)';
+              textColor = '#888';
+              borderColor = '#888';
+              icon = '⛔';
+            } else {
+              bgColor = 'rgba(123,47,190,0.15)';
+              textColor = '#a855f7';
+              borderColor = '#7b2fbe';
+              icon = '✅';
+            }
+            badge.style.cssText = [
+              'padding:6px 12px',
+              'border-radius:6px',
+              'font-size:12px',
+              'font-weight:600',
+              'cursor:' + (disabled ? 'not-allowed' : 'pointer'),
+              'border:2px solid ' + borderColor,
+              'background:' + bgColor,
+              'color:' + textColor,
+              'opacity:' + (disabled ? '0.6' : '1')
+            ].join(';');
+            badge.textContent = pc.pc_number + ' ' + icon;
+            badge.title = occupied ? 'In Use' : unavailable ? 'Unavailable' : 'Available';
+
+            if (!disabled) {
+              badge.addEventListener('click', function () {
+                pcSelect.value = pc.id;
+                // visual highlight
+                document.querySelectorAll('#pc-grid div').forEach(b => b.style.borderWidth = '2px');
+                badge.style.borderWidth = '3px';
+              });
+            }
+            pcGrid.appendChild(badge);
+          });
+
+          pcGridWrap.style.display = 'block';
+        })
+        .catch(function (err) {
+          loadingMsg.style.display = 'none';
+          pcSelect.innerHTML = '<option value="">Error loading PCs</option>';
+          console.error(err);
+        });
+    });
+  </script>
+
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

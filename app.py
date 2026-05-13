@@ -61,7 +61,8 @@ def init_db():
         session INTEGER NOT NULL,
         date TEXT NOT NULL DEFAULT (DATE('now')),
         time_in TEXT,
-        time_out TEXT
+        time_out TEXT,
+        pc_id INTEGER
     )''')
 
     conn.execute('''CREATE TABLE IF NOT EXISTS sitin_reports (
@@ -75,6 +76,12 @@ def init_db():
         time_in TEXT,
         time_out TEXT
     )''')
+
+    # Add pc_id column to sitin_reports if missing
+    try:
+        conn.execute('ALTER TABLE sitin_reports ADD COLUMN pc_id INTEGER')
+    except:
+        pass
 
     conn.execute('''CREATE TABLE IF NOT EXISTS announcements (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,6 +99,12 @@ def init_db():
         time TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'Pending'
     )''')
+
+    # Add pc_id column to reservations if missing
+    try:
+        conn.execute('ALTER TABLE reservations ADD COLUMN pc_id INTEGER')
+    except:
+        pass
 
     conn.execute('''CREATE TABLE IF NOT EXISTS lab_rules (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,11 +127,18 @@ def init_db():
         date TEXT NOT NULL DEFAULT (DATE('now'))
     )''')
 
+    # Add pc_id column to feedback if missing
+    try:
+        conn.execute('ALTER TABLE feedback ADD COLUMN pc_id INTEGER')
+    except:
+        pass
+
     conn.execute('''CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        message TEXT NOT NULL,
-        date TEXT NOT NULL DEFAULT (DATE('now')),
+        id      INTEGER PRIMARY KEY AUTOINCREMENT,
+        idnum   TEXT    NOT NULL DEFAULT 'global',
+        title   TEXT    NOT NULL,
+        message TEXT    NOT NULL,
+        date    TEXT    NOT NULL DEFAULT (DATE('now')),
         is_read INTEGER DEFAULT 0
     )''')
 
@@ -170,11 +190,9 @@ def init_db():
                         VALUES ('0000', 'Admin', 'CCS', '', 'admin@ccs.com', 'N/A', 'N/A', 'N/A', ?, 0)''',
                      (generate_password_hash('admin123'),))
 
-    # Ensure all 4 labs exist
     for lab_name in ['Lab 1', 'Lab 2', 'Lab 3', 'Lab 4']:
         conn.execute('INSERT OR IGNORE INTO laboratory (lab_name) VALUES (?)', (lab_name,))
 
-    # Seed default PCs if none exist
     if conn.execute('SELECT COUNT(*) FROM computer_units').fetchone()[0] == 0:
         for lab_id in range(1, 5):
             for pc in range(1, 6):
@@ -237,9 +255,22 @@ def csrf_protect():
 def inject_unread_count():
     if 'user_id' in session and session.get('role') == 'student':
         conn = get_db()
-        count = conn.execute('SELECT COUNT(*) FROM notifications WHERE is_read=0').fetchone()[0]
+        count = conn.execute('''
+            SELECT COUNT(*) FROM notifications
+            WHERE is_read = 0 AND (idnum = ? OR idnum = 'global')
+        ''', (session['user_idnum'],)).fetchone()[0]
         conn.close()
         return dict(unread_count=count)
+
+    if 'user_id' in session and session.get('role') == 'admin':
+        conn = get_db()
+        count = conn.execute('''
+            SELECT COUNT(*) FROM notifications
+            WHERE is_read = 0 AND idnum = ?
+        ''', (session['user_idnum'],)).fetchone()[0]
+        conn.close()
+        return dict(unread_count=count)
+
     return dict(unread_count=0)
 
 # ---------- Public routes ----------
@@ -371,6 +402,27 @@ def student_home():
                            total_hours=total_hours,
                            avg_duration=avg_duration)
 
+# --- Student AJAX endpoint ---
+@app.route('/student/get_pcs/<lab_name>')
+def student_get_pcs(lab_name):
+    if 'user_id' not in session:
+        return {'pcs': []}
+    conn = get_db()
+    lab = conn.execute('SELECT id FROM laboratory WHERE lab_name = ?', (lab_name,)).fetchone()
+    if not lab:
+        conn.close()
+        return {'pcs': []}
+    pcs = conn.execute('''
+        SELECT cu.id, cu.pc_number, cu.status,
+               CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
+        FROM computer_units cu
+        LEFT JOIN sitin s ON s.pc_id = cu.id
+        WHERE cu.lab_id = ? AND cu.status = 'Available'
+        ORDER BY cu.pc_number
+    ''', (lab['id'],)).fetchall()
+    conn.close()
+    return {'pcs': [dict(pc) for pc in pcs]}
+
 @app.route('/student/reservation', methods=['GET', 'POST'])
 def student_reservation():
     if not student_required():
@@ -381,14 +433,18 @@ def student_reservation():
         purpose = request.form['purpose'].strip()
         date = request.form['date'].strip()
         time = request.form['time'].strip()
+        pc_id = request.form.get('pc_id', '').strip()
+
         if not all([lab, purpose, date, time]):
             error = 'All fields are required.'
         else:
             conn = get_db()
-            if conn.execute('''SELECT id FROM reservations WHERE idnum=? AND lab=? AND date=? AND time=? AND status!="Rejected"''',
+            if conn.execute('''SELECT id FROM reservations
+                               WHERE idnum=? AND lab=? AND date=? AND time=? AND status!="Rejected"''',
                             (session['user_idnum'], lab, date, time)).fetchone():
                 error = 'You already have a reservation for this slot.'
-            elif conn.execute('''SELECT id FROM reservations WHERE lab=? AND date=? AND time=? AND status IN ("Pending","Approved")''',
+            elif conn.execute('''SELECT id FROM reservations
+                                 WHERE lab=? AND date=? AND time=? AND status IN ("Pending","Approved")''',
                               (lab, date, time)).fetchone():
                 error = 'This slot is already reserved by another student.'
             else:
@@ -397,19 +453,41 @@ def student_reservation():
                                             (lab_row['id'],)).fetchone()[0] == 0:
                     error = 'No available computers in this lab.'
                 else:
-                    conn.execute('''INSERT INTO reservations (idnum, name, lab, purpose, date, time)
-                                    VALUES (?, ?, ?, ?, ?, ?)''',
-                                 (session['user_idnum'], session['user_name'], lab, purpose, date, time))
-                    conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                                 ('Reservation Submitted', f'Your reservation for Lab {lab} on {date} at {time} is pending.'))
+                    conn.execute('''INSERT INTO reservations (idnum, name, lab, purpose, date, time, pc_id)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                                 (session['user_idnum'], session['user_name'],
+                                  lab, purpose, date, time, pc_id if pc_id else None))
+                    # Notify the student
+                    conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                                    VALUES (?, ?, ?, 0)''',
+                                 (session['user_idnum'], 'Reservation Submitted',
+                                  f'Your reservation for {lab} on {date} at {time} is pending.'))
+                    # Notify the admin
+                    admin_idnum = conn.execute('SELECT idnum FROM users WHERE email="admin@ccs.com"').fetchone()['idnum']
+                    conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                                    VALUES (?, ?, ?, 0)''',
+                                 (admin_idnum, 'New Reservation',
+                                  f'{session["user_name"]} reserved {lab} on {date} at {time}.'))
                     conn.commit()
                     flash('Reservation submitted!', 'success')
                     return redirect(url_for('student_reservation'))
             conn.close()
+
     conn = get_db()
-    reservations = conn.execute('SELECT * FROM reservations WHERE idnum=? ORDER BY id DESC', (session['user_idnum'],)).fetchall()
+    labs = conn.execute('SELECT * FROM laboratory ORDER BY lab_name').fetchall()
+    # Get reservations with PC number
+    reservations = conn.execute('''
+        SELECT r.*, cu.pc_number
+        FROM reservations r
+        LEFT JOIN computer_units cu ON r.pc_id = cu.id
+        WHERE r.idnum = ?
+        ORDER BY r.id DESC
+    ''', (session['user_idnum'],)).fetchall()
     conn.close()
-    return render_template('student/reservationStudent.html', error=error, reservations=reservations)
+    return render_template('student/reservationStudent.html',
+                           error=error,
+                           labs=labs,
+                           reservations=reservations)
 
 @app.route('/student/profile', methods=['GET', 'POST'])
 def student_profile():
@@ -484,21 +562,49 @@ def student_history():
     if request.method == 'POST':
         message = request.form['message'].strip()
         lab = request.form.get('lab', '').strip()
+        pc_id = request.form.get('pc_id', '').strip()
         if not message:
             error = 'Feedback cannot be empty.'
         else:
             conn = get_db()
-            conn.execute('INSERT INTO feedback (idnum, name, message, lab) VALUES (?, ?, ?, ?)',
-                         (session['user_idnum'], session['user_name'], message, lab if lab else None))
-            # Send notification to all students (or just admin) – we'll keep as is
-            conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                         ('New Feedback', f'{session["user_name"]} submitted feedback for Lab {lab if lab else "N/A"}'))
+            conn.execute('INSERT INTO feedback (idnum, name, message, lab, pc_id) VALUES (?, ?, ?, ?, ?)',
+                         (session['user_idnum'], session['user_name'], message,
+                          lab if lab else None,
+                          pc_id if pc_id else None))
             conn.commit()
             conn.close()
             success = 'Feedback submitted!'
+
     conn = get_db()
-    records = conn.execute('SELECT * FROM sitin_reports WHERE idnum=? ORDER BY id DESC', (session['user_idnum'],)).fetchall()
+    # Get history with PC number
+    rows = conn.execute('''
+        SELECT sr.*, cu.pc_number
+        FROM sitin_reports sr
+        LEFT JOIN computer_units cu ON sr.pc_id = cu.id
+        WHERE sr.idnum = ?
+        ORDER BY sr.id DESC
+    ''', (session['user_idnum'],)).fetchall()
     conn.close()
+
+    records = []
+    for r in rows:
+        r = dict(r)
+        duration = ''
+        if r['time_in'] and r['time_out']:
+            try:
+                t_in = datetime.strptime(r['time_in'], '%H:%M')
+                t_out = datetime.strptime(r['time_out'], '%H:%M')
+                delta = t_out - t_in
+                hours, remainder = divmod(delta.seconds, 3600)
+                minutes = remainder // 60
+                duration = f'{hours}h {minutes:02d}m'
+            except:
+                duration = 'N/A'
+        else:
+            duration = 'N/A'
+        r['duration'] = duration
+        records.append(r)
+
     return render_template('student/history.html', records=records, success=success, error=error)
 
 @app.route('/student/notifications')
@@ -506,7 +612,16 @@ def student_notifications():
     if not student_required():
         return redirect(url_for('login'))
     conn = get_db()
-    notifications = conn.execute('SELECT * FROM notifications ORDER BY id DESC').fetchall()
+    conn.execute('''
+        UPDATE notifications SET is_read = 1
+        WHERE is_read = 0 AND (idnum = ? OR idnum = 'global')
+    ''', (session['user_idnum'],))
+    conn.commit()
+    notifications = conn.execute('''
+        SELECT * FROM notifications
+        WHERE idnum = ? OR idnum = 'global'
+        ORDER BY id DESC
+    ''', (session['user_idnum'],)).fetchall()
     conn.close()
     return render_template('student/notifications.html', notifications=notifications)
 
@@ -515,7 +630,10 @@ def mark_all_notifications_read():
     if not student_required():
         return redirect(url_for('login'))
     conn = get_db()
-    conn.execute('UPDATE notifications SET is_read=1 WHERE is_read=0')
+    conn.execute('''
+        UPDATE notifications SET is_read = 1
+        WHERE is_read = 0 AND (idnum = ? OR idnum = 'global')
+    ''', (session['user_idnum'],))
     conn.commit()
     conn.close()
     flash('All notifications marked as read.', 'info')
@@ -529,7 +647,14 @@ def student_lab_availability():
     labs = conn.execute('SELECT * FROM laboratory').fetchall()
     availability = []
     for lab in labs:
-        computers = conn.execute('SELECT id, pc_number, status FROM computer_units WHERE lab_id=?', (lab['id'],)).fetchall()
+        computers = conn.execute('''
+            SELECT cu.id, cu.pc_number, cu.status,
+                   CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
+            FROM computer_units cu
+            LEFT JOIN sitin s ON s.pc_id = cu.id
+            WHERE cu.lab_id = ?
+            ORDER BY cu.pc_number
+        ''', (lab['id'],)).fetchall()
         availability.append({'lab': lab, 'computers': computers})
     conn.close()
     return render_template('student/lab_availability.html', availability=availability)
@@ -564,8 +689,8 @@ def post_announcement():
     if content:
         conn = get_db()
         conn.execute('INSERT INTO announcements (content) VALUES (?)', (content,))
-        conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                     ('New Announcement', content))
+        conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                        VALUES ('global', ?, ?, 0)''', ('New Announcement', content))
         conn.commit()
         conn.close()
     return redirect(url_for('admin_home'))
@@ -646,6 +771,27 @@ def admin_search():
         conn.close()
     return render_template('admin/search.html', students=students, query=query)
 
+# ---------- AJAX endpoint: get PCs available in a lab (admin) ----------
+@app.route('/admin/get_pcs/<lab_name>')
+def get_pcs(lab_name):
+    if not admin_required():
+        return {'pcs': []}
+    conn = get_db()
+    lab = conn.execute('SELECT id FROM laboratory WHERE lab_name = ?', (lab_name,)).fetchone()
+    if not lab:
+        conn.close()
+        return {'pcs': []}
+    pcs = conn.execute('''
+        SELECT cu.id, cu.pc_number, cu.status,
+               CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
+        FROM computer_units cu
+        LEFT JOIN sitin s ON s.pc_id = cu.id
+        WHERE cu.lab_id = ?
+        ORDER BY cu.pc_number
+    ''', (lab['id'],)).fetchall()
+    conn.close()
+    return {'pcs': [dict(pc) for pc in pcs]}
+
 @app.route('/admin/sitin', methods=['GET', 'POST'])
 def admin_sitin():
     if not admin_required():
@@ -655,6 +801,7 @@ def admin_sitin():
         idnum = request.form['idnum'].strip()
         purpose = request.form['purpose'].strip()
         lab = request.form['lab'].strip()
+        pc_id = request.form.get('pc_id', '').strip()
         if not all([idnum, purpose, lab]):
             error = 'All fields are required.'
         else:
@@ -664,26 +811,50 @@ def admin_sitin():
                 error = 'Student ID not found.'
             elif student['sessions'] <= 0:
                 error = 'No sessions left.'
+            elif pc_id:
+                pc = conn.execute('SELECT * FROM computer_units WHERE id=?', (pc_id,)).fetchone()
+                if not pc:
+                    error = 'Invalid PC selected.'
+                elif pc['status'] == 'Unavailable':
+                    error = 'Selected PC is unavailable.'
+                elif conn.execute('SELECT id FROM sitin WHERE pc_id=?', (pc_id,)).fetchone():
+                    error = 'That PC is already in use.'
+                else:
+                    time_in = datetime.now().strftime('%H:%M')
+                    conn.execute('''INSERT INTO sitin (idnum, name, purpose, lab, session, time_in, pc_id)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                                 (idnum, student['firstname']+' '+student['lastname'],
+                                  purpose, lab, student['sessions'], time_in, pc_id))
+                    conn.execute('UPDATE users SET sessions = sessions - 1 WHERE idnum=?', (idnum,))
+                    conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                                    VALUES (?, ?, ?, 0)''',
+                                 (idnum, 'New Sit-in Session',
+                                  f'You have been registered for {purpose} in {lab}.'))
+                    conn.commit()
+                    flash('Sit-in started.', 'success')
+                    conn.close()
+                    return redirect(url_for('admin_sitin'))
             else:
-                time_in = datetime.now().strftime('%H:%M')
-                conn.execute('''INSERT INTO sitin (idnum, name, purpose, lab, session, time_in)
-                                VALUES (?, ?, ?, ?, ?, ?)''',
-                             (idnum, student['firstname']+' '+student['lastname'], purpose, lab, student['sessions'], time_in))
-                conn.execute('UPDATE users SET sessions = sessions - 1 WHERE idnum=?', (idnum,))
-                conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                             ('New Sit-in Session', f'You have been registered for {purpose} in Lab {lab}.'))
-                conn.commit()
-                flash('Sit-in started.', 'success')
-                return redirect(url_for('admin_sitin'))
+                error = 'Please select a PC.'
             conn.close()
-    return render_template('admin/sitin.html', error=error)
+
+    conn = get_db()
+    labs = conn.execute('SELECT * FROM laboratory ORDER BY lab_name').fetchall()
+    conn.close()
+    return render_template('admin/sitin.html', error=error, labs=labs)
 
 @app.route('/admin/sitin/records')
 def admin_sitin_records():
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    records = conn.execute('SELECT * FROM sitin ORDER BY id DESC').fetchall()
+    # Include pc_number
+    records = conn.execute('''
+        SELECT s.*, cu.pc_number
+        FROM sitin s
+        LEFT JOIN computer_units cu ON s.pc_id = cu.id
+        ORDER BY s.id DESC
+    ''').fetchall()
     conn.close()
     return render_template('admin/sitin_records.html', records=records)
 
@@ -695,10 +866,10 @@ def end_sitin(record_id):
     record = conn.execute('SELECT * FROM sitin WHERE id=?', (record_id,)).fetchone()
     if record:
         time_out = datetime.now().strftime('%H:%M')
-        conn.execute('''INSERT INTO sitin_reports (idnum, name, purpose, lab, session, date, time_in, time_out)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        conn.execute('''INSERT INTO sitin_reports (idnum, name, purpose, lab, session, date, time_in, time_out, pc_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                      (record['idnum'], record['name'], record['purpose'], record['lab'], record['session'],
-                      record['date'], record['time_in'] or '', time_out))
+                      record['date'], record['time_in'] or '', time_out, record['pc_id']))
         conn.execute('DELETE FROM sitin WHERE id=?', (record_id,))
         conn.commit()
     conn.close()
@@ -709,7 +880,13 @@ def admin_reports():
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    records = conn.execute('SELECT * FROM sitin_reports ORDER BY id DESC').fetchall()
+    # Include pc_number
+    records = conn.execute('''
+        SELECT sr.*, cu.pc_number
+        FROM sitin_reports sr
+        LEFT JOIN computer_units cu ON sr.pc_id = cu.id
+        ORDER BY sr.id DESC
+    ''').fetchall()
     conn.close()
     return render_template('admin/reports.html', records=records)
 
@@ -738,7 +915,13 @@ def admin_reservation():
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    reservations = conn.execute('SELECT * FROM reservations ORDER BY id DESC').fetchall()
+    # Include pc_number
+    reservations = conn.execute('''
+        SELECT r.*, cu.pc_number
+        FROM reservations r
+        LEFT JOIN computer_units cu ON r.pc_id = cu.id
+        ORDER BY r.id DESC
+    ''').fetchall()
     conn.close()
     return render_template('admin/reservation.html', reservations=reservations)
 
@@ -753,12 +936,17 @@ def approve_reservation(reservation_id):
         student = conn.execute('SELECT * FROM users WHERE idnum=?', (reservation['idnum'],)).fetchone()
         if student and student['sessions'] > 0:
             time_in = datetime.now().strftime('%H:%M')
-            conn.execute('INSERT INTO sitin (idnum, name, purpose, lab, session, time_in) VALUES (?, ?, ?, ?, ?, ?)',
-                         (reservation['idnum'], reservation['name'], reservation['purpose'], reservation['lab'],
-                          student['sessions'], time_in))
+            pc_id = reservation['pc_id'] if 'pc_id' in reservation.keys() else None
+            conn.execute('''INSERT INTO sitin (idnum, name, purpose, lab, session, time_in, pc_id)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                         (reservation['idnum'], reservation['name'],
+                          reservation['purpose'], reservation['lab'],
+                          student['sessions'], time_in, pc_id))
             conn.execute('UPDATE users SET sessions = sessions - 1 WHERE idnum=?', (reservation['idnum'],))
-        conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                     ('Reservation Approved', f'Your reservation for Lab {reservation["lab"]} on {reservation["date"]} has been approved.'))
+        conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                        VALUES (?, ?, ?, 0)''',
+                     (reservation['idnum'], 'Reservation Approved',
+                      f'Your reservation for {reservation["lab"]} on {reservation["date"]} has been approved.'))
         conn.commit()
         flash('Reservation approved.', 'success')
     conn.close()
@@ -772,8 +960,10 @@ def reject_reservation(reservation_id):
     reservation = conn.execute('SELECT * FROM reservations WHERE id=?', (reservation_id,)).fetchone()
     if reservation:
         conn.execute("UPDATE reservations SET status='Rejected' WHERE id=?", (reservation_id,))
-        conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                     ('Reservation Rejected', f'Your reservation for Lab {reservation["lab"]} on {reservation["date"]} has been rejected.'))
+        conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                        VALUES (?, ?, ?, 0)''',
+                     (reservation['idnum'], 'Reservation Rejected',
+                      f'Your reservation for {reservation["lab"]} on {reservation["date"]} has been rejected.'))
         conn.commit()
         flash('Reservation rejected.', 'info')
     conn.close()
@@ -905,8 +1095,10 @@ def admin_rewards():
                 conn.execute('''INSERT INTO rewards (idnum, points) VALUES (?, ?)
                                 ON CONFLICT(idnum) DO UPDATE SET points = points + excluded.points''',
                              (idnum, points))
-                conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)',
-                             ('Points Received', f'You have been awarded {points} points!'))
+                conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                                VALUES (?, ?, ?, 0)''',
+                             (idnum, 'Points Received',
+                              f'You have been awarded {points} points!'))
                 conn.commit()
                 success = f'Added {points} points to {student["firstname"]} {student["lastname"]}'
             conn.close()
@@ -922,7 +1114,12 @@ def admin_feedback():
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    feedbacks = conn.execute('SELECT * FROM feedback ORDER BY id DESC').fetchall()
+    feedbacks = conn.execute('''
+        SELECT f.*, cu.pc_number
+        FROM feedback f
+        LEFT JOIN computer_units cu ON f.pc_id = cu.id
+        ORDER BY f.id DESC
+    ''').fetchall()
     conn.close()
     return render_template('admin/feedback.html', feedbacks=feedbacks)
 
@@ -936,14 +1133,37 @@ def admin_notifications():
         message = request.form['message'].strip()
         if title and message:
             conn = get_db()
-            conn.execute('INSERT INTO notifications (title, message, is_read) VALUES (?, ?, 0)', (title, message))
+            conn.execute('''INSERT INTO notifications (idnum, title, message, is_read)
+                            VALUES ('global', ?, ?, 0)''', (title, message))
             conn.commit()
             conn.close()
-            success = 'Notification posted!'
+            success = 'Notification sent to all students!'
+
     conn = get_db()
-    notifications = conn.execute('SELECT * FROM notifications ORDER BY id DESC').fetchall()
+    admin_idnum = session['user_idnum']
+    conn.execute('''UPDATE notifications SET is_read = 1
+                    WHERE is_read = 0 AND idnum = ?''', (admin_idnum,))
+    conn.commit()
+    notifications = conn.execute('''
+        SELECT * FROM notifications
+        WHERE idnum = ? OR idnum = 'global'
+        ORDER BY id DESC
+    ''', (admin_idnum,)).fetchall()
     conn.close()
     return render_template('admin/notifications.html', notifications=notifications, success=success)
+
+@app.route('/admin/notifications/mark_all_read')
+def admin_mark_all_notifications_read():
+    if not admin_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    admin_idnum = session['user_idnum']
+    conn.execute('''UPDATE notifications SET is_read = 1
+                    WHERE is_read = 0 AND idnum = ?''', (admin_idnum,))
+    conn.commit()
+    conn.close()
+    flash('All notifications marked as read.', 'info')
+    return redirect(url_for('admin_notifications'))
 
 @app.route('/admin/notifications/delete/<int:notif_id>')
 def delete_notification(notif_id):
@@ -1011,18 +1231,16 @@ def admin_computers():
             success = 'Computer unit added.'
     conn = get_db()
     computers = conn.execute('''
-        SELECT cu.id, cu.pc_number, cu.status, l.lab_name
+        SELECT cu.id, cu.pc_number, cu.status, l.lab_name,
+               CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
         FROM computer_units cu
         JOIN laboratory l ON cu.lab_id = l.id
-        ORDER BY cu.id
+        LEFT JOIN sitin s ON s.pc_id = cu.id
+        ORDER BY l.lab_name, cu.pc_number
     ''').fetchall()
     labs = conn.execute('SELECT * FROM laboratory').fetchall()
     conn.close()
-    return render_template('admin/computers.html',
-                           computers=computers,
-                           labs=labs,
-                           error=error,
-                           success=success)
+    return render_template('admin/computers.html', computers=computers, labs=labs, error=error, success=success)
 
 @app.route('/admin/computers/delete/<int:pc_id>', methods=['POST'])
 def delete_computer_unit(pc_id):
