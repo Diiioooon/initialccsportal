@@ -205,3 +205,31 @@ document.querySelectorAll('select').forEach(function (sel) {
     if (errorSpan) errorSpan.textContent = '';
   });
 });
+
+// ========== Page Transitions ==========
+document.addEventListener('DOMContentLoaded', function() {
+  // Apply fade-in on load
+  document.body.classList.add('page-fade');
+
+  // Intercept link clicks for fade-out
+  document.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      
+      // Only transition for internal links that aren't anchors or triggers
+      if (href && 
+          !href.startsWith('#') && 
+          !href.startsWith('javascript:') && 
+          !this.hasAttribute('target') &&
+          !this.classList.contains('no-transition')) {
+        
+        e.preventDefault();
+        document.body.classList.add('fade-out');
+        
+        setTimeout(() => {
+          window.location.href = href;
+        }, 300);
+      }
+    });
+  });
+});

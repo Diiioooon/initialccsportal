@@ -12,23 +12,29 @@
   <style>
     body { margin: 0; }
     .home-grid { display: grid; grid-template-columns: 240px 1fr 260px; gap: 16px; padding: 20px 24px; max-width: 1280px; margin: 0 auto; align-items: start; box-sizing: border-box; }
-    .profile-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .profile-avatar { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #7b2fbe, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #fff; font-family: 'Syne', sans-serif; overflow: hidden; margin-bottom: 10px; border: 3px solid rgba(168,85,247,0.4); }
+    .profile-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .profile-avatar { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--gold)); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; color: #fff; font-family: 'Syne', sans-serif; overflow: hidden; margin-bottom: 10px; border: 3px solid var(--purple-light); }
     .profile-avatar img { width:100%; height:100%; object-fit:cover; }
-    .profile-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; text-align: center; letter-spacing: 0.3px; }
-    .profile-sub { font-size: 12px; color: #a78bda; margin-bottom: 14px; }
-    .sessions-badge { width: 68px; height: 68px; border-radius: 50%; border: 3px solid #7b2fbe; display: flex; align-items: center; justify-content: center; margin: 6px 0 2px; }
-    .sessions-badge .num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; line-height: 1; }
-    .sessions-label { font-size: 9px; color: #a78bda; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
-    .info-row { width: 100%; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 9px 13px; margin-top: 5px; }
-    .info-row .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
-    .info-row .val { font-size: 13px; color: #ddd; }
-    .announce-card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 22px; min-height: 420px; }
-    .announce-card h2 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; }
-    .announce-item { border-left: 3px solid #e6a817; padding: 10px 14px; margin-bottom: 10px; background: rgba(255,255,255,0.04); border-radius: 0 6px 6px 0; }
-    .announce-item .ann-text { font-size: 13px; color: #e0e0e0; margin: 0 0 4px 0; line-height: 1.5; }
-    .announce-item .ann-date { font-size: 11px; color: #666; }
-    .no-announce { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #555; font-size: 13px; gap: 12px; }
+    .profile-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); text-align: center; letter-spacing: 0.3px; }
+    .profile-sub { font-size: 12px; color: var(--purple); margin-bottom: 14px; font-weight: 600; }
+    .sessions-badge { width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--purple); display: flex; align-items: center; justify-content: center; margin: 6px 0 2px; }
+    .sessions-badge .num { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+    .sessions-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+    .info-row { width: 100%; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 8px; padding: 9px 13px; margin-top: 5px; }
+    .info-row .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+    .info-row .val { font-size: 13px; color: var(--text); }
+    .announce-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; min-height: 420px; }
+    .announce-card h2 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; }
+    .announce-item { border-left: 3px solid var(--gold); padding: 10px 14px; margin-bottom: 10px; background: var(--glass); border-radius: 0 6px 6px 0; }
+    .announce-item .ann-text { font-size: 13px; color: var(--text); margin: 0 0 4px 0; line-height: 1.5; }
+    .announce-item .ann-date { font-size: 11px; color: var(--muted); }
+    .no-announce { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: var(--muted); font-size: 13px; gap: 12px; }
+
+    .testimonials-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 22px; margin-top: 16px; }
+    .testimonials-card h2 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; }
+    .testimonial-item { background: var(--glass); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--glass-border); }
+    .testimonial-text { font-size: 13px; color: var(--text); font-style: italic; margin-bottom: 8px; line-height: 1.4; }
+    .testimonial-author { font-size: 11px; color: var(--purple); font-weight: 600; display: flex; justify-content: space-between; }
 
     /* Rules card – now adapts to theme */
     .rules-card {
@@ -112,17 +118,34 @@
         <div class="info-row"><span class="lbl">Session Stats</span><span class="val">{{ total_sessions }} sit-ins, {{ total_hours }} hrs</span></div>
         <div class="info-row"><span class="lbl">Avg Duration</span><span class="val">{{ avg_duration }} hrs</span></div>
       </div>
-      <div class="announce-card">
-        <h2>📣 Announcements</h2>
-        {% if announcements %}
-          {% for a in announcements %}
-          <div class="announce-item">
-            <p class="ann-text">{{ a['content'] }}</p>
-            <span class="ann-date">{{ a['date'] }}</span>
+      <div class="center-column">
+        <div class="announce-card">
+          <h2>📣 Announcements</h2>
+          {% if announcements %}
+            {% for a in announcements %}
+            <div class="announce-item">
+              <p class="ann-text">{{ a['content'] }}</p>
+              <span class="ann-date">{{ a['date'] }}</span>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="no-announce">No announcements yet.</div>
+          {% endif %}
+        </div>
+
+        {% if testimonials %}
+        <div class="testimonials-card">
+          <h2>💬 Student Testimonials</h2>
+          {% for t in testimonials %}
+          <div class="testimonial-item">
+            <p class="testimonial-text">"{{ t['message'] }}"</p>
+            <div class="testimonial-author">
+              <span>— {{ t['name'] }}</span>
+              <span style="color: #666; font-weight: normal;">{{ t['date'] }}</span>
+            </div>
           </div>
           {% endfor %}
-        {% else %}
-          <div class="no-announce">No announcements yet.</div>
+        </div>
         {% endif %}
       </div>
       <div class="rules-card">

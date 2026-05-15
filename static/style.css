@@ -18,6 +18,22 @@ html[data-theme="dark"]{
   --glass:rgba(0,0,0,0.3); --glass-border:rgba(255,255,255,0.05);
 }
 
+html:not([data-theme="dark"]) {
+  --white: #ffffff;
+  --border: #e2e2e0;
+  --text: #1a1a1a;
+  --muted: #8a8a85;
+  --purple: #7b2fbe;
+  --purple-hover: #6a27a8;
+  --purple-light: rgba(123, 47, 190, 0.15);
+  --gold: #e6a817;
+  --gold-hover: #d4960f;
+  --navy: #1a3a6b;
+  --navy-dark: #122850;
+  --glass: rgba(0, 0, 0, 0.04);
+  --glass-border: rgba(0, 0, 0, 0.08);
+}
+
 /* ========== Base body ========== */
 body{
   font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -28,6 +44,43 @@ body{
   display:flex;
   flex-direction:column;
   transition:background-color 0.3s,color 0.3s;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Futuristic Grid Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(123, 47, 190, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123, 47, 190, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Page Transitions */
+.page-fade {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-in forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
 }
 
 /* ========== Navbar ========== */
@@ -681,3 +734,9 @@ html[data-theme="light"] .notif-unread {
   margin-left: 4px;
   vertical-align: middle;
 }
+
+/* ========== Status Helper Classes ========== */
+.text-success { color: #4caf50 !important; }
+.text-danger { color: #f44336 !important; }
+.text-bold { font-weight: bold; }
+.status-indicator { font-size: 0.85rem; }

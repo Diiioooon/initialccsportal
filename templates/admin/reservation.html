@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -70,11 +70,24 @@
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <h2 class="form-title" style="margin-bottom:0;">Student Reservations</h2>
-          {% if reservations %}
-            <a href="{{ url_for('clear_reservations') }}"
-               class="btn-danger"
-               onclick="return confirm('Clear ALL reservation records? This cannot be undone.')">🗑 Clear All</a>
-          {% endif %}
+          <div style="display:flex; align-items:center; gap:15px;">
+            <form action="{{ url_for('toggle_reservation') }}" method="POST" style="display:flex; align-items:center; gap:8px; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 20px;">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <span style="font-size:0.9rem; font-weight:600;">Reservations:</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="enabled" value="1" {{ 'checked' if reservations_enabled else '' }} onchange="this.form.submit()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="status-indicator text-bold {{ 'text-success' if reservations_enabled else 'text-danger' }}">
+                    {{ 'ENABLED' if reservations_enabled else 'DISABLED' }}
+                </span>
+            </form>
+            {% if reservations %}
+                <a href="{{ url_for('clear_reservations') }}"
+                class="btn-danger"
+                onclick="return confirm('Clear ALL reservation records? This cannot be undone.')">🗑 Clear All</a>
+            {% endif %}
+          </div>
         </div>
         <div class="table-wrap">
           <table class="admin-table">

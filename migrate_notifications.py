@@ -1,10 +1,21 @@
 import sqlite3
+import os
 
-conn = sqlite3.connect('database.db')
-try:
-    conn.execute("ALTER TABLE notifications ADD COLUMN idnum TEXT NOT NULL DEFAULT 'global'")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def migrate():
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
+    conn.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )''')
+    
+    # Insert default reservation status if not exists
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('reservations_enabled', '1')")
+    
     conn.commit()
-    print('Migration done')
-except Exception as e:
-    print('Error:', e)
-conn.close()
+    conn.close()
+    print("Migration successful: settings table created and default value set.")
+
+if __name__ == '__main__':
+    migrate()

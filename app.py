@@ -171,6 +171,13 @@ def init_db():
         PRIMARY KEY (pc_id, software_id)
     )''')
 
+    conn.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )''')
+
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('reservations_enabled', '1')")
+
     # ---------- Seed data ----------
     if conn.execute('SELECT COUNT(*) FROM lab_rules').fetchone()[0] == 0:
         rules = [
@@ -393,11 +400,13 @@ def student_home():
     avg_duration = round(total_hours / total_sessions, 2) if total_sessions else 0
     announcements = conn.execute('SELECT * FROM announcements ORDER BY id DESC').fetchall()
     lab_rules = conn.execute('SELECT * FROM lab_rules ORDER BY id').fetchall()
+    testimonials = conn.execute('SELECT * FROM feedback ORDER BY id DESC LIMIT 5').fetchall()
     conn.close()
     return render_template('student/home.html',
                            student=student,
                            announcements=announcements,
                            lab_rules=lab_rules,
+                           testimonials=testimonials,
                            total_sessions=total_sessions,
                            total_hours=total_hours,
                            avg_duration=avg_duration)
@@ -427,8 +436,21 @@ def student_get_pcs(lab_name):
 def student_reservation():
     if not student_required():
         return redirect(url_for('login'))
+    
+    conn = get_db()
+    status_row = conn.execute("SELECT value FROM settings WHERE key = 'reservations_enabled'").fetchone()
+    reservations_enabled = (status_row['value'] == '1') if status_row else True
+    conn.close()
+
+    if not reservations_enabled:
+        flash('Reservations are currently disabled by the administrator.', 'error')
+        # We still want to show the page so they can see their history, but disable the form
+    
     error = None
     if request.method == 'POST':
+        if not reservations_enabled:
+            flash('Reservations are currently disabled.', 'error')
+            return redirect(url_for('student_reservation'))
         lab = request.form['lab'].strip()
         purpose = request.form['purpose'].strip()
         date = request.form['date'].strip()
@@ -487,7 +509,8 @@ def student_reservation():
     return render_template('student/reservationStudent.html',
                            error=error,
                            labs=labs,
-                           reservations=reservations)
+                           reservations=reservations,
+                           reservations_enabled=reservations_enabled)
 
 @app.route('/student/profile', methods=['GET', 'POST'])
 def student_profile():
@@ -922,8 +945,28 @@ def admin_reservation():
         LEFT JOIN computer_units cu ON r.pc_id = cu.id
         ORDER BY r.id DESC
     ''').fetchall()
+    
+    # Get reservation status
+    status_row = conn.execute("SELECT value FROM settings WHERE key = 'reservations_enabled'").fetchone()
+    reservations_enabled = (status_row['value'] == '1') if status_row else True
+    
     conn.close()
-    return render_template('admin/reservation.html', reservations=reservations)
+    return render_template('admin/reservation.html', reservations=reservations, reservations_enabled=reservations_enabled)
+
+@app.route('/admin/reservation/toggle', methods=['POST'])
+def toggle_reservation():
+    if not admin_required():
+        return redirect(url_for('login'))
+    
+    enabled = request.form.get('enabled') == '1'
+    conn = get_db()
+    conn.execute("UPDATE settings SET value = ? WHERE key = 'reservations_enabled'", ('1' if enabled else '0',))
+    conn.commit()
+    conn.close()
+    
+    status_text = "enabled" if enabled else "disabled"
+    flash(f"Reservations have been {status_text}.", "success")
+    return redirect(url_for('admin_reservation'))
 
 @app.route('/admin/reservation/approve/<int:reservation_id>')
 def approve_reservation(reservation_id):
@@ -1182,7 +1225,7 @@ def admin_software():
         return redirect(url_for('login'))
     error = success = None
     if request.method == 'POST':
-        name = request.form['name'].strip()
+        name = request.form.get('name', '').strip()
         version = request.form.get('version', '').strip()
         license = request.form.get('license', '').strip()
         if not name:
@@ -1200,6 +1243,47 @@ def admin_software():
     softwares = conn.execute('SELECT * FROM software ORDER BY name').fetchall()
     conn.close()
     return render_template('admin/software.html', softwares=softwares, error=error, success=success)
+
+@app.route('/admin/software/import', methods=['POST'])
+def import_software():
+    if not admin_required():
+        return redirect(url_for('login'))
+    
+    if 'csv_file' not in request.files:
+        flash('No file part', 'error')
+        return redirect(url_for('admin_software'))
+    
+    file = request.files['csv_file']
+    if file.filename == '':
+        flash('No selected file', 'error')
+        return redirect(url_for('admin_software'))
+    
+    if file and file.filename.endswith('.csv'):
+        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+        csv_input = csv.DictReader(stream)
+        
+        conn = get_db()
+        count = 0
+        skipped = 0
+        for row in csv_input:
+            name = row.get('name', '').strip()
+            version = row.get('version', '').strip()
+            license = row.get('license', '').strip()
+            
+            if name:
+                try:
+                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, license))
+                    count += 1
+                except sqlite3.IntegrityError:
+                    skipped += 1
+        conn.commit()
+        conn.close()
+        
+        flash(f'Successfully imported {count} software records. {skipped} duplicates skipped.', 'success')
+    else:
+        flash('Invalid file format. Please upload a CSV file.', 'error')
+        
+    return redirect(url_for('admin_software'))
 
 @app.route('/admin/software/delete/<int:sw_id>')
 def delete_software(sw_id):
