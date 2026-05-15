@@ -34,7 +34,7 @@
     <ul class="nav-links">
       <li><a href="{{ url_for('student_home') }}">Home</a></li>
       <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
-      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_history') }}" class="active">Sit-in History</a></li>
       <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
       <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
       <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
@@ -42,7 +42,9 @@
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
-          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
         </a>
       </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>

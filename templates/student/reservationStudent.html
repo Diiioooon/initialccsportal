@@ -40,7 +40,9 @@
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
-          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+          {% if unread_count > 0 %}
+            <span class="notification-badge">{{ unread_count }}</span>
+          {% endif %}
         </a>
       </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
