@@ -233,3 +233,55 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+
+/* =========================================================
+   FLOATING PARTICLES
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  const particleContainer = document.createElement("div");
+  particleContainer.className = "grid-particles";
+
+  document.body.appendChild(particleContainer);
+
+  const particleCount = 45;
+
+  for (let i = 0; i < particleCount; i++) {
+
+    const particle = document.createElement("span");
+
+    particle.style.left = Math.random() * 100 + "vw";
+
+    particle.style.animationDuration =
+      (8 + Math.random() * 12) + "s";
+
+    particle.style.animationDelay =
+      Math.random() * 10 + "s";
+
+    particle.style.opacity =
+      Math.random() * 0.7;
+
+    particle.style.width =
+      particle.style.height =
+      (2 + Math.random() * 4) + "px";
+
+    particleContainer.appendChild(particle);
+  }
+
+});
+
+/* =========================================================
+   CYBER GLOW BACKGROUND
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  const glow = document.createElement("div");
+
+  glow.className = "cyber-glow";
+
+  document.body.appendChild(glow);
+
+});

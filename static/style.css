@@ -48,20 +48,152 @@ body{
   overflow-x: hidden;
 }
 
-/* Futuristic Grid Overlay */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    linear-gradient(rgba(123, 47, 190, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(123, 47, 190, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
-  pointer-events: none;
-  z-index: -1;
+/* =========================================================
+   FUTURISTIC ANIMATED GRID BACKGROUND
+========================================================= */
+
+/* Main animated grid */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-3;
+  pointer-events:none;
+
+  background-image:
+    linear-gradient(rgba(123,47,190,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123,47,190,0.10) 1px, transparent 1px);
+
+  background-size:50px 50px;
+
+  animation:
+    gridMove 18s linear infinite,
+    gridPulse 5s ease-in-out infinite;
+
+  transform-origin:center;
+}
+
+/* Extra glowing overlay */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+
+  background:
+    radial-gradient(circle at 20% 20%, rgba(168,85,247,0.18), transparent 30%),
+    radial-gradient(circle at 80% 30%, rgba(123,47,190,0.15), transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(192,132,252,0.10), transparent 40%);
+
+  animation:
+    glowFloat 12s ease-in-out infinite alternate;
+}
+
+/* Floating particles layer */
+.grid-particles{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:-1;
+}
+
+.grid-particles span{
+  position:absolute;
+  display:block;
+  width:3px;
+  height:3px;
+  border-radius:50%;
+  background:#a855f7;
+  box-shadow:
+    0 0 8px #a855f7,
+    0 0 16px #a855f7,
+    0 0 24px #a855f7;
+
+  opacity:0.5;
+
+  animation:
+    particleFloat linear infinite,
+    particleGlow ease-in-out infinite;
+}
+
+/* =======================
+   GRID ANIMATIONS
+======================= */
+
+@keyframes gridMove{
+  0%{
+    transform:translateY(0px) translateX(0px);
+  }
+  100%{
+    transform:translateY(50px) translateX(50px);
+  }
+}
+
+@keyframes gridPulse{
+  0%,100%{
+    opacity:0.45;
+  }
+  50%{
+    opacity:0.9;
+  }
+}
+
+@keyframes glowFloat{
+  0%{
+    transform:translateY(0px) scale(1);
+  }
+  100%{
+    transform:translateY(-30px) scale(1.08);
+  }
+}
+
+/* =======================
+   PARTICLES
+======================= */
+
+@keyframes particleFloat{
+  0%{
+    transform:translateY(100vh) scale(0.4);
+    opacity:0;
+  }
+
+  10%{
+    opacity:0.5;
+  }
+
+  100%{
+    transform:translateY(-120px) scale(1.2);
+    opacity:0;
+  }
+}
+
+@keyframes particleGlow{
+  0%,100%{
+    filter:blur(0px);
+  }
+
+  50%{
+    filter:blur(2px);
+  }
+}
+
+/* =======================
+   LIGHT MODE VERSION
+======================= */
+
+html[data-theme="light"] body::before{
+  background-image:
+    linear-gradient(rgba(123,47,190,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123,47,190,0.07) 1px, transparent 1px);
+}
+
+html[data-theme="light"] body::after{
+  background:
+    radial-gradient(circle at 20% 20%, rgba(168,85,247,0.10), transparent 30%),
+    radial-gradient(circle at 80% 30%, rgba(123,47,190,0.08), transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(192,132,252,0.06), transparent 40%);
 }
 
 /* Page Transitions */
@@ -740,3 +872,38 @@ html[data-theme="light"] .notif-unread {
 .text-danger { color: #f44336 !important; }
 .text-bold { font-weight: bold; }
 .status-indicator { font-size: 0.85rem; }
+
+
+/* =========================================================
+   CYBER GLOW EFFECT
+========================================================= */
+
+.cyber-glow{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-4;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(123,47,190,0.18),
+      transparent 70%
+    );
+
+  filter:blur(120px);
+
+  animation:cyberPulse 6s ease-in-out infinite;
+}
+
+@keyframes cyberPulse{
+  0%,100%{
+    opacity:0.4;
+    transform:scale(1);
+  }
+
+  50%{
+    opacity:0.7;
+    transform:scale(1.08);
+  }
+}
