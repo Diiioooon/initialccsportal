@@ -54,6 +54,71 @@
       color: var(--muted);
       margin-bottom: 24px;
     }
+
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .testimonial-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s;
+    }
+    .testimonial-card:hover {
+      transform: translateY(-5px);
+    }
+    .testimonial-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .testimonial-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--gold));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #fff;
+      font-size: 14px;
+    }
+    .testimonial-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .testimonial-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .testimonial-date {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .testimonial-body {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+      font-style: italic;
+    }
+    .testimonial-lab {
+      font-size: 10px;
+      background: var(--purple-light);
+      color: var(--purple);
+      padding: 2px 8px;
+      border-radius: 10px;
+      align-self: flex-start;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -74,8 +139,31 @@
 
   <main class="community-content">
     <h1>CCS Community</h1>
+    
+    {% if testimonials %}
+    <h2 style="font-family: 'Syne', sans-serif; font-size: 20px; margin: 30px 0 15px;">💬 Student Testimonials</h2>
+    <div class="testimonial-grid">
+      {% for t in testimonials %}
+      <div class="testimonial-card">
+        <div class="testimonial-header">
+          <div class="testimonial-avatar">{{ t['name'][0] | upper }}</div>
+          <div class="testimonial-info">
+            <span class="testimonial-name">{{ t['name'] }}</span>
+            <span class="testimonial-date">{{ t['date'] }}</span>
+          </div>
+        </div>
+        <p class="testimonial-body">"{{ t['message'] }}"</p>
+        {% if t['lab'] %}
+        <span class="testimonial-lab">{{ t['lab'] }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2 style="font-family: 'Syne', sans-serif; font-size: 20px; margin: 40px 0 15px;">📌 Community Board</h2>
     <div class="placeholder-note">
-      🚧 <strong>Community board coming soon!</strong> This space will allow students to share tips,
+      🚧 <strong>Coming soon!</strong> This space will allow students to share tips,
       ask questions, and collaborate. Below are sample posts to show how it will look.
     </div>
 

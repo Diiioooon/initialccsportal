@@ -304,6 +304,10 @@ footer{
   font-size:14px; font-family:inherit; color:var(--text); background:transparent;
   outline:none; width:100%; transition:border-color 0.2s;
 }
+.flat-field select option {
+  background-color: var(--white);
+  color: var(--text);
+}
 .flat-field input::placeholder{color:#bbb;}
 .flat-field input:focus,.flat-field select:focus{border-bottom-color:var(--purple);}
 .name-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}

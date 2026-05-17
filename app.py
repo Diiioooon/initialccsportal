@@ -289,7 +289,10 @@ def home():
 
 @app.route('/community')
 def community():
-    return render_template('community.html')
+    conn = get_db()
+    testimonials = conn.execute('SELECT * FROM feedback ORDER BY id DESC LIMIT 10').fetchall()
+    conn.close()
+    return render_template('community.html', testimonials=testimonials)
 
 @app.route('/about')
 def about():
