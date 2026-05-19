@@ -1339,6 +1339,19 @@ def delete_computer_unit(pc_id):
     conn.close()
     return redirect(url_for('admin_computers'))
 
+@app.route('/admin/computers/maintenance/<int:pc_id>', methods=['POST'])
+def toggle_maintenance(pc_id):
+    if not admin_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    pc = conn.execute('SELECT status FROM computer_units WHERE id=?', (pc_id,)).fetchone()
+    if pc:
+        new_status = 'Available' if pc['status'] == 'Under Maintenance' else 'Under Maintenance'
+        conn.execute('UPDATE computer_units SET status=? WHERE id=?', (new_status, pc_id))
+        conn.commit()
+    conn.close()
+    return redirect(url_for('admin_computers'))
+
 @app.route('/admin/pc/<int:pc_id>/software', methods=['GET', 'POST'])
 def assign_software(pc_id):
     if not admin_required():
@@ -1346,12 +1359,30 @@ def assign_software(pc_id):
     error = success = None
     conn = get_db()
     if request.method == 'POST':
-        software_ids = request.form.getlist('software_ids')
-        conn.execute('DELETE FROM pc_software WHERE pc_id=?', (pc_id,))
-        for sw_id in software_ids:
-            conn.execute('INSERT INTO pc_software (pc_id, software_id) VALUES (?, ?)', (pc_id, sw_id))
-        conn.commit()
-        success = 'Software updated for PC.'
+        action = request.form.get('action', 'save_software')
+        if action == 'add_software':
+            # Inline add new software from the Manage page
+            sw_name = request.form.get('sw_name', '').strip()
+            sw_version = request.form.get('sw_version', '').strip()
+            sw_license = request.form.get('sw_license', '').strip()
+            if not sw_name:
+                error = 'Software name is required.'
+            else:
+                try:
+                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)',
+                                 (sw_name, sw_version, sw_license))
+                    conn.commit()
+                    success = f'Software "{sw_name}" added successfully.'
+                except sqlite3.IntegrityError:
+                    error = f'Software "{sw_name}" already exists.'
+        else:
+            # Save checkbox assignments
+            software_ids = request.form.getlist('software_ids')
+            conn.execute('DELETE FROM pc_software WHERE pc_id=?', (pc_id,))
+            for sw_id in software_ids:
+                conn.execute('INSERT INTO pc_software (pc_id, software_id) VALUES (?, ?)', (pc_id, sw_id))
+            conn.commit()
+            success = 'Software assignments updated.'
     pc = conn.execute('''SELECT cu.*, l.lab_name FROM computer_units cu
                          JOIN laboratory l ON cu.lab_id = l.id WHERE cu.id=?''', (pc_id,)).fetchone()
     all_software = conn.execute('SELECT * FROM software ORDER BY name').fetchall()

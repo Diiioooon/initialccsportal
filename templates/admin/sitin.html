@@ -146,13 +146,15 @@
           data.pcs.forEach(function (pc) {
             const occupied = pc.occupied == 1;
             const unavailable = pc.status === 'Unavailable';
-            const disabled = occupied || unavailable;
+            const maintenance = pc.status === 'Under Maintenance';
+            const disabled = occupied || unavailable || maintenance;
 
             // Dropdown option
             const opt = document.createElement('option');
             opt.value = pc.id;
             let label = pc.pc_number;
             if (occupied) label += ' (In Use)';
+            else if (maintenance) label += ' (Under Maintenance)';
             else if (unavailable) label += ' (Unavailable)';
             else label += ' (Available)';
             opt.textContent = label;
@@ -167,6 +169,11 @@
               textColor = '#e6a817';
               borderColor = '#e6a817';
               icon = '🔴';
+            } else if (maintenance) {
+              bgColor = 'rgba(245,158,11,0.15)';
+              textColor = '#f59e0b';
+              borderColor = '#f59e0b';
+              icon = '🔧';
             } else if (unavailable) {
               bgColor = 'rgba(136,136,136,0.15)';
               textColor = '#888';
@@ -190,7 +197,7 @@
               'opacity:' + (disabled ? '0.6' : '1')
             ].join(';');
             badge.textContent = pc.pc_number + ' ' + icon;
-            badge.title = occupied ? 'In Use' : unavailable ? 'Unavailable' : 'Available';
+            badge.title = occupied ? 'In Use' : maintenance ? 'Under Maintenance' : unavailable ? 'Unavailable' : 'Available';
 
             if (!disabled) {
               badge.addEventListener('click', function () {

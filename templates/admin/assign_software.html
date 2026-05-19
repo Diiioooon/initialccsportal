@@ -61,13 +61,42 @@
       <!-- RIGHT -->
       <div class="split-right">
         <h2 class="form-title">Manage Software — {{ pc['pc_number'] }}</h2>
-        <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">
+        <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
           Check the software installed on this PC. Uncheck to remove it.
         </p>
+
+        <!-- Add New Software inline -->
+        <details style="margin-bottom:20px; border:1px solid var(--border); border-radius:8px; padding:12px 16px;">
+          <summary style="font-size:13px; font-weight:600; cursor:pointer; color:var(--purple, #7b2fbe);">
+            ➕ Add New Software to System
+          </summary>
+          <form method="POST" style="margin-top:14px;">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <input type="hidden" name="action" value="add_software">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+              <div class="form-field" style="flex:2; min-width:140px;">
+                <label>Software Name *</label>
+                <input name="sw_name" placeholder="e.g. Visual Studio Code" required>
+              </div>
+              <div class="form-field" style="flex:1; min-width:100px;">
+                <label>Version</label>
+                <input name="sw_version" placeholder="e.g. 1.89">
+              </div>
+              <div class="form-field" style="flex:1; min-width:100px;">
+                <label>License</label>
+                <input name="sw_license" placeholder="e.g. Free">
+              </div>
+              <div style="padding-bottom:4px;">
+                <button type="submit" class="btn-create" style="white-space:nowrap;">Add Software</button>
+              </div>
+            </div>
+          </form>
+        </details>
 
         {% if all_software %}
         <form method="POST">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <input type="hidden" name="action" value="save_software">
 
           <!-- Search filter -->
           <div class="form-field" style="margin-bottom:16px;">
@@ -118,9 +147,9 @@
         <div style="text-align:center; padding:40px 20px;">
           <p style="font-size:32px; margin-bottom:10px;">📭</p>
           <p style="color:var(--muted); font-size:14px; margin-bottom:16px;">
-            No software added to the system yet.
+            No software added to the system yet. Use the form above to add one!
           </p>
-          <a href="{{ url_for('admin_software') }}" class="btn-create">+ Add Software First</a>
+          <a href="{{ url_for('admin_software') }}" class="btn-cancel">Go to Software Page</a>
         </div>
         {% endif %}
       </div>

@@ -36,6 +36,38 @@
       max-height: 50vh;
       overflow-y: auto;
     }
+    .badge-maintenance {
+      background: #f59e0b;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .btn-maintenance {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 5px;
+      border: 1px solid #f59e0b;
+      background: transparent;
+      color: #f59e0b;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-maintenance:hover {
+      background: #f59e0b;
+      color: #fff;
+    }
+    .btn-maintenance.restore {
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+    .btn-maintenance.restore:hover {
+      background: #22c55e;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -169,9 +201,13 @@
                   <td>{{ loop.index }}</td>
                   <td><strong>{{ c['pc_number'] }}</strong></td>
                   <td>
-                    <span class="badge {{ 'badge-active' if c['status'] == 'Available' else 'badge-done' }}">
-                      {{ c['status'] }}
-                    </span>
+                    {% if c['status'] == 'Available' %}
+                      <span class="badge badge-active">Available</span>
+                    {% elif c['status'] == 'Under Maintenance' %}
+                      <span class="badge badge-maintenance">🔧 Maintenance</span>
+                    {% else %}
+                      <span class="badge badge-done">{{ c['status'] }}</span>
+                    {% endif %}
                   </td>
                   <td>
                     {% if c['occupied'] %}
@@ -183,7 +219,17 @@
                   <td>
                     <a href="{{ url_for('assign_software', pc_id=c['id']) }}" class="btn-edit">Manage</a>
                   </td>
-                  <td>
+                  <td style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                    <!-- Maintenance toggle -->
+                    <form method="POST" action="/admin/computers/maintenance/{{ c['id'] }}" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                      {% if c['status'] == 'Under Maintenance' %}
+                        <button type="submit" class="btn-maintenance restore" title="Restore to Available">✅ Restore</button>
+                      {% else %}
+                        <button type="submit" class="btn-maintenance" title="Set Under Maintenance">🔧 Maintenance</button>
+                      {% endif %}
+                    </form>
+                    <!-- Delete -->
                     <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
                       <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                       <button type="submit" class="btn-delete"

@@ -175,7 +175,7 @@
           }
           pcSelect.innerHTML = '<option value="">-- Choose PC (optional) --</option>';
           data.pcs.forEach(pc => {
-            if (pc.occupied == 1 || pc.status === 'Unavailable') return;
+            if (pc.occupied == 1 || pc.status === 'Unavailable' || pc.status === 'Under Maintenance') return;
             const opt = document.createElement('option');
             opt.value = pc.id;
             opt.textContent = pc.pc_number + ' (Available)';

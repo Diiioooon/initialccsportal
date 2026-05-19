@@ -92,6 +92,8 @@
           {% for pc in lab['computers'] %}
             {% if pc['occupied'] %}
               <span class="pc-item in-use">{{ pc['pc_number'] }} – In Use</span>
+            {% elif pc['status'] == 'Under Maintenance' %}
+              <span class="pc-item unavailable">{{ pc['pc_number'] }} – 🔧 Maintenance</span>
             {% elif pc['status'] == 'Unavailable' %}
               <span class="pc-item unavailable">{{ pc['pc_number'] }} – Unavailable</span>
             {% else %}
