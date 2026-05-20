@@ -5,9 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CCS Admin | Software</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .sw-page { display:grid; grid-template-columns:280px 1fr; min-height:calc(100vh - 52px); }
+
+    /* ── Sidebar ── */
+    .sw-sidebar {
+      background:var(--card,#1c1c2e); border-right:1px solid var(--border);
+      padding:20px 16px; display:flex; flex-direction:column; gap:16px;
+      position:sticky; top:52px; height:calc(100vh - 52px); overflow-y:auto;
+    }
+    .sw-section-label {
+      font-size:10px; font-weight:700; letter-spacing:1.2px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+    }
+    .sw-add-form { display:flex; flex-direction:column; gap:8px; }
+    .sw-input {
+      background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      border-radius:7px; padding:8px 11px; font-size:12px; color:var(--text);
+      width:100%; box-sizing:border-box; transition:border-color 0.15s;
+    }
+    .sw-input:focus { outline:none; border-color:var(--purple,#7b2fbe); }
+    .sw-input::placeholder { color:var(--muted); }
+    .btn-add { background:var(--purple,#7b2fbe); color:#fff; border:none; border-radius:7px; padding:8px; font-size:12px; font-weight:700; cursor:pointer; width:100%; }
+    .btn-add:hover { opacity:0.85; }
+    .sw-divider { border:none; border-top:1px solid var(--border); }
+
+    /* Catalog list */
+    .catalog-scroll { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:3px; min-height:0; }
+    .catalog-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:6px 8px; border-radius:6px; gap:8px;
+      border:1px solid transparent; transition:background 0.1s;
+    }
+    .catalog-row:hover { background:rgba(255,255,255,0.04); border-color:var(--border); }
+    .catalog-name { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .catalog-meta { font-size:10px; color:var(--muted); }
+    .btn-del {
+      flex-shrink:0; background:transparent; border:1px solid rgba(239,68,68,0.4);
+      color:#ef4444; border-radius:5px; padding:2px 7px; font-size:10px;
+      cursor:pointer; font-weight:700; transition:background 0.15s;
+    }
+    .btn-del:hover { background:rgba(239,68,68,0.15); }
+
+    /* ── Main ── */
+    .sw-main { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
+
+    /* Lab selector bar */
+    .lab-selector-bar {
+      display:flex; align-items:center; gap:12px;
+      background:var(--card,#1c1c2e); border:1px solid var(--border);
+      border-radius:10px; padding:14px 18px;
+    }
+    .lab-selector-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
+    .lab-select {
+      flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      border-radius:7px; padding:8px 12px; font-size:13px; color:var(--text);
+      cursor:pointer; appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 10px center;
+      padding-right:30px;
+    }
+    .lab-select:focus { outline:none; border-color:var(--purple,#7b2fbe); }
+    .btn-save-lab {
+      background:var(--gold,#e6a817); color:#1a1a1a; border:none; border-radius:7px;
+      padding:8px 20px; font-size:13px; font-weight:700; cursor:pointer;
+      white-space:nowrap; transition:opacity 0.15s;
+    }
+    .btn-save-lab:hover { opacity:0.85; }
+
+    /* Lab panel */
+    .lab-panel { display:none; }
+    .lab-panel.active { display:block; }
+    .cat-label {
+      font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+      color:var(--muted); padding:10px 0 6px; border-bottom:1px solid var(--border); margin-bottom:8px;
+    }
+    .sw-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:6px; margin-bottom:6px; }
+    .sw-card {
+      display:flex; align-items:flex-start; gap:8px; padding:9px 11px;
+      border:1px solid var(--border); border-radius:8px; cursor:pointer;
+      transition:border-color 0.15s, background 0.15s; background:rgba(255,255,255,0.02);
+    }
+    .sw-card:hover { border-color:rgba(123,47,190,0.5); background:rgba(123,47,190,0.06); }
+    .sw-card.on { border-color:var(--purple,#7b2fbe); background:rgba(123,47,190,0.12); }
+    .sw-card input[type=checkbox] { accent-color:var(--purple,#7b2fbe); margin-top:2px; flex-shrink:0; }
+    .sw-card-name { font-size:12px; font-weight:600; color:var(--text); line-height:1.3; }
+    .sw-card-meta { font-size:10px; color:var(--muted); margin-top:1px; }
+
+    /* Empty state */
+    .sw-empty { text-align:center; padding:50px 20px; color:var(--muted); }
+    .sw-empty-icon { font-size:36px; margin-bottom:10px; }
+
+    /* Flash */
+    .sw-flash {
+      padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600;
+      margin-bottom:4px;
+    }
+    .sw-flash.ok { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#22c55e; }
+    .sw-flash.err { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
+  </style>
 </head>
 <body>
-
   <nav>
     <div class="nav-left">
       <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo">
@@ -15,125 +113,165 @@
       <span class="nav-title">College of Computer Studies Admin</span>
     </div>
     <ul class="nav-links">
-      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
-      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
-      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
-      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
-      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
-      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
-      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
-      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
-      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
-      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
-      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
-      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
-      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
-      <li>
-  <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
-    Notifications
-    {% if unread_count > 0 %}
-      <span class="notification-badge">{{ unread_count }}</span>
-    {% endif %}
-  </a>
-</li>
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint=='admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint=='admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint=='admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint=='admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint=='admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint=='admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint=='admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint=='admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint=='admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint=='admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint=='admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint=='admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint=='admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint=='admin_notifications' else '' }}">Notifications{% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a></li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
-  <main class="admin-main">
-    <div class="admin-split-card">
+  <div class="sw-page">
 
-      <!-- LEFT PANEL -->
-      <div class="split-left">
-        <div class="split-logo-circle">
-          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+    <!-- SIDEBAR -->
+    <aside class="sw-sidebar">
+      <div>
+        <div class="sw-section-label">Add Software</div>
+        <form method="POST" class="sw-add-form">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+          <input type="hidden" name="action" value="add">
+          <input class="sw-input" name="name" placeholder="Software name *" required>
+          <input class="sw-input" name="version" placeholder="Version (e.g. 1.89)">
+          <input class="sw-input" name="license" placeholder="License (e.g. Free)">
+          <button type="submit" class="btn-add">+ Add to Catalog</button>
+        </form>
+      </div>
+      <hr class="sw-divider">
+      <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="sw-section-label">Catalog ({{ softwares|length }})</div>
+        <div class="catalog-scroll">
+          {% for s in softwares %}
+          <div class="catalog-row">
+            <div style="min-width:0;">
+              <div class="catalog-name" title="{{ s['name'] }}">{{ s['name'] }}</div>
+              <div class="catalog-meta">{% if s['version'] %}v{{ s['version'] }}{% endif %}{% if s['license'] %} · {{ s['license'] }}{% endif %}</div>
+            </div>
+            <a href="{{ url_for('delete_software', sw_id=s['id']) }}"
+               onclick="return confirm('Delete \'{{ s.name }}\'? Removes from all labs.')"
+               class="btn-del">Del</a>
+          </div>
+          {% else %}
+          <div style="font-size:12px;color:var(--muted);padding:8px 0;">No software yet.</div>
+          {% endfor %}
         </div>
-        <h2 class="split-title">Software</h2>
-        <p class="split-desc">Manage installed software list.</p>
+      </div>
+    </aside>
 
-        {% if error %}
-          <div class="alert-error">{{ error }}</div>
-        {% endif %}
-        {% if success %}
-          <div class="alert-success">{{ success }}</div>
-        {% endif %}
+    <!-- MAIN -->
+    <div class="sw-main">
+
+      {% if error %}<div class="sw-flash err">{{ error }}</div>{% endif %}
+      {% if success %}<div class="sw-flash ok">{{ success }}</div>{% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="sw-flash {{ 'ok' if cat=='success' else 'err' }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      {% if softwares %}
+
+      <!-- Lab selector -->
+      <div class="lab-selector-bar">
+        <label>🖥️ Laboratory:</label>
+        <select class="lab-select" id="labDropdown" onchange="switchLab(this.value)">
+          {% for lab in labs %}
+          <option value="lp-{{ lab.id }}" {% if loop.first %}selected{% endif %}>{{ lab['lab_name'] }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="btn-save-lab" onclick="submitActiveForm()">💾 Save</button>
       </div>
 
-      <!-- RIGHT PANEL -->
-      <div class="split-right">
-        <div style="display:flex; gap:20px; margin-bottom:20px;">
-          <div style="flex:1;">
-            <h2 class="form-title">Add Software</h2>
-            <form method="POST" class="form-card">
-              <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-              <div class="form-field">
-                <label>Name</label>
-                <input name="name" required>
-              </div>
-              <div class="form-field">
-                <label>Version</label>
-                <input name="version">
-              </div>
-              <div class="form-field">
-                <label>License</label>
-                <input name="license">
-              </div>
-              <button type="submit" class="btn-create">Add Software</button>
-            </form>
-          </div>
-          <div style="flex:1;">
-            <h2 class="form-title">Bulk Import (CSV)</h2>
-            <form action="{{ url_for('import_software') }}" method="POST" enctype="multipart/form-data" class="form-card" style="height:100%; display:flex; flex-direction:column; justify-content:space-between;">
-              <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-              <div>
-                <p style="font-size:0.85rem; color:var(--muted); margin-bottom:15px;">
-                  Upload a CSV file with headers: <strong>name, version, license</strong>
-                </p>
-                <div class="form-field">
-                  <label>Select CSV File</label>
-                  <input type="file" name="csv_file" accept=".csv" required style="padding:10px; border:1px dashed var(--border); width:100%;">
-                </div>
-              </div>
-              <button type="submit" class="btn-submit" style="background:#28a745; width:100%;">📤 Import CSV</button>
-            </form>
-          </div>
-        </div>
+      <!-- One panel per lab -->
+      {% for lab in labs %}
+      <div class="lab-panel {% if loop.first %}active{% endif %}" id="lp-{{ lab.id }}">
+        <form method="POST" action="{{ url_for('assign_lab_software', lab_id=lab.id) }}" id="form-{{ lab.id }}">
+          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
 
-        <h3 style="font-size:16px; font-weight:600; margin-bottom:12px;">Installed Software</h3>
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Version</th>
-                <th>License</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for s in softwares %}
-              <tr>
-                <td>{{ s['name'] }}</td>
-                <td>{{ s['version'] }}</td>
-                <td>{{ s['license'] }}</td>
-                <td>
-                  <a href="{{ url_for('delete_software', sw_id=s['id']) }}"
-                     class="btn-delete"
-                     onclick="return confirm('Delete this software?')">Delete</a>
-                </td>
-              </tr>
+          {% set categories = [
+            ('💻 Programming & Development', ['Visual Studio Code','Visual Studio 2022','Dev-C++','Eclipse IDE','PyCharm Community','NetBeans IDE','Android Studio','Git','XAMPP','Node.js','Python','Java JDK']),
+            ('🗄️ Database Tools', ['MySQL Workbench','SQLite Browser','HeidiSQL']),
+            ('🌐 Network & Security', ['Cisco Packet Tracer','Wireshark','PuTTY','VirtualBox','VMware Workstation Player']),
+            ('📄 Office & Productivity', ['Microsoft Office 2021','LibreOffice','Notepad++','7-Zip']),
+            ('🎨 Design & Media', ['Adobe Photoshop','Adobe Illustrator','Figma','GIMP']),
+            ('🌍 Browsers', ['Google Chrome','Mozilla Firefox']),
+            ('📦 Other', [])
+          ] %}
+
+          {% set all_known = [] %}
+          {% for _, names in categories[:-1] %}{% for n in names %}{% set _ = all_known.append(n) %}{% endfor %}{% endfor %}
+
+          {% for cat_label, cat_names in categories %}
+            {% set cat_sw = [] %}
+            {% for sw in softwares %}
+              {% if cat_label == '📦 Other' %}
+                {% if sw['name'] not in all_known %}{% set _ = cat_sw.append(sw) %}{% endif %}
               {% else %}
-              <tr><td colspan="4" class="no-data">No software added yet.</td></tr>
+                {% if sw['name'] in cat_names %}{% set _ = cat_sw.append(sw) %}{% endif %}
+              {% endif %}
+            {% endfor %}
+            {% if cat_sw %}
+            <div class="cat-label">{{ cat_label }}</div>
+            <div class="sw-grid">
+              {% for sw in cat_sw %}
+              {% set checked = sw.id in lab_software.get(lab.id, []) %}
+              <label class="sw-card {% if checked %}on{% endif %}">
+                <input type="checkbox" name="software_ids" value="{{ sw.id }}"
+                       {% if checked %}checked{% endif %}
+                       onchange="this.closest('label').classList.toggle('on',this.checked)">
+                <div>
+                  <div class="sw-card-name">{{ sw['name'] }}</div>
+                  <div class="sw-card-meta">{% if sw['version'] %}v{{ sw['version'] }}{% endif %}{% if sw['license'] %} · {{ sw['license'] }}{% endif %}</div>
+                </div>
+              </label>
               {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
+            {% endif %}
+          {% endfor %}
 
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+            <span style="font-size:12px;color:var(--muted);align-self:center;">{{ lab['lab_name'] }}</span>
+            <button type="submit" class="btn-save-lab">💾 Save Changes</button>
+          </div>
+        </form>
+      </div>
+      {% endfor %}
+
+      {% else %}
+      <div class="sw-empty">
+        <div class="sw-empty-icon">📭</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">No software in the catalog</div>
+        <div style="font-size:12px;">Use the sidebar to add software to the catalog first.</div>
+      </div>
+      {% endif %}
     </div>
-  </main>
+  </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    function switchLab(panelId) {
+      document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.add('active');
+    }
+    function submitActiveForm() {
+      const active = document.querySelector('.lab-panel.active form');
+      if (active) active.submit();
+    }
+    // Auto-dismiss flash after 4s
+    document.querySelectorAll('.sw-flash').forEach(el => {
+      setTimeout(() => { el.style.transition='opacity 0.5s'; el.style.opacity='0'; }, 4000);
+    });
+  </script>
 </body>
 </html>

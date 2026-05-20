@@ -119,6 +119,72 @@
       align-self: flex-start;
       font-weight: 600;
     }
+
+    /* Leaderboard */
+    .leaderboard-wrap {
+      margin-top: 40px;
+    }
+    .leaderboard-wrap h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .leaderboard-table thead tr {
+      background: var(--purple, #7b2fbe);
+      color: #fff;
+    }
+    .leaderboard-table th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    .leaderboard-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    .leaderboard-table tr:hover td {
+      background: rgba(123,47,190,0.06);
+    }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-weight: 700; font-size: 13px;
+    }
+    .rank-1 { background: #f1c40f; color: #1a1a1a; }
+    .rank-2 { background: #bdc3c7; color: #1a1a1a; }
+    .rank-3 { background: #cd7f32; color: #fff; }
+    .rank-other { background: rgba(123,47,190,0.15); color: var(--purple); }
+    .points-pill {
+      display: inline-block;
+      background: rgba(230,168,23,0.15);
+      color: #e6a817;
+      border: 1px solid #e6a817;
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .lb-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--gold));
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; font-size: 12px;
+      margin-right: 8px; vertical-align: middle;
+    }
+    .lb-empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--muted); font-size: 14px;
+      border: 1px dashed var(--border); border-radius: 12px;
+    }
   </style>
 </head>
 <body>
@@ -160,6 +226,44 @@
       {% endfor %}
     </div>
     {% endif %}
+
+    <h2 style="font-family: 'Syne', sans-serif; font-size: 20px; margin: 40px 0 15px;">🏆 Points Leaderboard</h2>
+
+    <div class="leaderboard-wrap">
+      {% if leaderboard %}
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th style="width:50px;">Rank</th>
+            <th>Student</th>
+            <th>Course</th>
+            <th>Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in leaderboard %}
+          <tr>
+            <td>
+              <span class="rank-badge {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% else %}rank-other{% endif %}">
+                {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+              </span>
+            </td>
+            <td>
+              <span class="lb-avatar">{{ entry['firstname'][0] | upper }}</span>
+              {{ entry['firstname'] }} {{ entry['lastname'] }}
+            </td>
+            <td style="color:var(--muted); font-size:12px;">{{ entry['course'] }}</td>
+            <td><span class="points-pill">⭐ {{ entry['points'] }} pts</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="lb-empty">
+        🏅 No points awarded yet. Check back soon!
+      </div>
+      {% endif %}
+    </div>
 
     <h2 style="font-family: 'Syne', sans-serif; font-size: 20px; margin: 40px 0 15px;">📌 Community Board</h2>
     <div class="placeholder-note">

@@ -121,7 +121,7 @@
         <h3 style="font-size:15px; font-weight:600; margin-bottom:12px;">My Reservations</h3>
         <div class="table-wrap">
           <table class="admin-table">
-            <thead><tr><th>Lab</th><th>Purpose</th><th>Date</th><th>Time</th><th>PC</th><th>Status</th></tr></thead>
+            <thead><tr><th>Lab</th><th>Purpose</th><th>Date</th><th>Time</th><th>PC</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
               {% for r in reservations %}
               <tr>
@@ -133,10 +133,22 @@
                 <td>
                   {% if r['status'] == 'Pending' %}<span class="badge badge-pending">Pending</span>
                   {% elif r['status'] == 'Approved' %}<span class="badge badge-active">Approved</span>
+                  {% elif r['status'] == 'Cancelled' %}<span class="badge" style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">Cancelled</span>
                   {% else %}<span class="badge badge-done">Rejected</span>{% endif %}
                 </td>
+                <td>
+                  {% if r['status'] == 'Pending' %}
+                  <form method="POST" action="{{ url_for('cancel_reservation', reservation_id=r['id']) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <button type="submit" class="btn-delete" style="font-size:11px;padding:4px 10px;"
+                      onclick="return confirm('Cancel this reservation?')">Cancel</button>
+                  </form>
+                  {% else %}
+                  <span style="color:var(--muted);font-size:12px;">—</span>
+                  {% endif %}
+                </td>
               </tr>
-              {% else %}<tr><td colspan="6" class="no-data">No reservations yet.</td></tr>{% endfor %}
+              {% else %}<tr><td colspan="7" class="no-data">No reservations yet.</td></tr>{% endfor %}
             </tbody>
           </table>
         </div>

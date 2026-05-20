@@ -197,8 +197,15 @@ def init_db():
                         VALUES ('0000', 'Admin', 'CCS', '', 'admin@ccs.com', 'N/A', 'N/A', 'N/A', ?, 0)''',
                      (generate_password_hash('admin123'),))
 
-    for lab_name in ['Lab 1', 'Lab 2', 'Lab 3', 'Lab 4']:
+    for lab_name in [f'Lab {n}' for n in range(517, 531)]:
         conn.execute('INSERT OR IGNORE INTO laboratory (lab_name) VALUES (?)', (lab_name,))
+    conn.execute('''CREATE TABLE IF NOT EXISTS lab_software (
+        lab_id INTEGER NOT NULL,
+        software_id INTEGER NOT NULL,
+        PRIMARY KEY (lab_id, software_id),
+        FOREIGN KEY (lab_id) REFERENCES laboratory(id),
+        FOREIGN KEY (software_id) REFERENCES software(id)
+    )''')
 
     if conn.execute('SELECT COUNT(*) FROM computer_units').fetchone()[0] == 0:
         for lab_id in range(1, 5):
@@ -291,8 +298,11 @@ def home():
 def community():
     conn = get_db()
     testimonials = conn.execute('SELECT * FROM feedback ORDER BY id DESC LIMIT 10').fetchall()
+    leaderboard = conn.execute('''SELECT r.idnum, r.points, u.firstname, u.lastname, u.course
+                                  FROM rewards r JOIN users u ON u.idnum = r.idnum
+                                  ORDER BY r.points DESC LIMIT 10''').fetchall()
     conn.close()
-    return render_template('community.html', testimonials=testimonials)
+    return render_template('community.html', testimonials=testimonials, leaderboard=leaderboard)
 
 @app.route('/about')
 def about():
@@ -841,8 +851,8 @@ def admin_sitin():
                 pc = conn.execute('SELECT * FROM computer_units WHERE id=?', (pc_id,)).fetchone()
                 if not pc:
                     error = 'Invalid PC selected.'
-                elif pc['status'] == 'Unavailable':
-                    error = 'Selected PC is unavailable.'
+                elif pc['status'] in ('Unavailable', 'Under Maintenance'):
+                    error = 'Selected PC is not available (unavailable or under maintenance).'
                 elif conn.execute('SELECT id FROM sitin WHERE pc_id=?', (pc_id,)).fetchone():
                     error = 'That PC is already in use.'
                 else:
@@ -935,6 +945,31 @@ def clear_sitin_reports():
     conn.commit()
     conn.close()
     return redirect(url_for('admin_reports'))
+
+@app.route('/student/reservation/cancel/<int:reservation_id>', methods=['POST'])
+def cancel_reservation(reservation_id):
+    if not student_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    reservation = conn.execute(
+        'SELECT * FROM reservations WHERE id=? AND idnum=?',
+        (reservation_id, session['user_idnum'])
+    ).fetchone()
+    if not reservation:
+        flash('Reservation not found.', 'error')
+    elif reservation['status'] == 'Approved':
+        flash('Approved reservations cannot be cancelled. Please contact the admin.', 'error')
+    elif reservation['status'] in ('Rejected', 'Cancelled'):
+        flash('This reservation is already cancelled or rejected.', 'error')
+    else:
+        conn.execute('UPDATE reservations SET status=? WHERE id=?', ('Cancelled', reservation_id))
+        conn.execute('''INSERT INTO notifications (idnum, title, message, is_read) VALUES (?, ?, ?, 0)''',
+                     (session['user_idnum'], 'Reservation Cancelled',
+                      f'You cancelled your reservation for {reservation["lab"]} on {reservation["date"]} at {reservation["time"]}.'))
+        conn.commit()
+        flash('Reservation cancelled successfully.', 'success')
+    conn.close()
+    return redirect(url_for('student_reservation'))
 
 @app.route('/admin/reservation', methods=['GET', 'POST'])
 def admin_reservation():
@@ -1227,65 +1262,79 @@ def admin_software():
     if not admin_required():
         return redirect(url_for('login'))
     error = success = None
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        version = request.form.get('version', '').strip()
-        license = request.form.get('license', '').strip()
-        if not name:
-            error = 'Software name is required.'
-        else:
-            conn = get_db()
-            try:
-                conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, license))
-                conn.commit()
-                success = f'Software "{name}" added.'
-            except sqlite3.IntegrityError:
-                error = 'Software already exists.'
-            conn.close()
     conn = get_db()
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+        if action == 'add':
+            name = request.form.get('name', '').strip()
+            version = request.form.get('version', '').strip()
+            lic = request.form.get('license', '').strip()
+            if not name:
+                error = 'Software name is required.'
+            else:
+                try:
+                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, lic))
+                    conn.commit()
+                    success = f'Software "{name}" added.'
+                except sqlite3.IntegrityError:
+                    error = 'Software already exists.'
+    labs = conn.execute('SELECT * FROM laboratory ORDER BY lab_name').fetchall()
     softwares = conn.execute('SELECT * FROM software ORDER BY name').fetchall()
+    # Get assigned software per lab
+    lab_software = {}
+    for lab in labs:
+        assigned = conn.execute('SELECT software_id FROM lab_software WHERE lab_id=?', (lab['id'],)).fetchall()
+        lab_software[lab['id']] = [r['software_id'] for r in assigned]
     conn.close()
-    return render_template('admin/software.html', softwares=softwares, error=error, success=success)
+    return render_template('admin/software.html', softwares=softwares, labs=labs,
+                           lab_software=lab_software, error=error, success=success)
+
+@app.route('/admin/software/assign/<int:lab_id>', methods=['POST'])
+def assign_lab_software(lab_id):
+    if not admin_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    software_ids = request.form.getlist('software_ids')
+    conn.execute('DELETE FROM lab_software WHERE lab_id=?', (lab_id,))
+    for sw_id in software_ids:
+        conn.execute('INSERT OR IGNORE INTO lab_software (lab_id, software_id) VALUES (?, ?)', (lab_id, sw_id))
+    conn.commit()
+    conn.close()
+    flash('Software updated for lab.', 'success')
+    return redirect(url_for('admin_software') + f'#lab-{lab_id}')
 
 @app.route('/admin/software/import', methods=['POST'])
 def import_software():
     if not admin_required():
         return redirect(url_for('login'))
-    
     if 'csv_file' not in request.files:
         flash('No file part', 'error')
         return redirect(url_for('admin_software'))
-    
     file = request.files['csv_file']
     if file.filename == '':
         flash('No selected file', 'error')
         return redirect(url_for('admin_software'))
-    
     if file and file.filename.endswith('.csv'):
         stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
         csv_input = csv.DictReader(stream)
-        
         conn = get_db()
         count = 0
         skipped = 0
         for row in csv_input:
             name = row.get('name', '').strip()
             version = row.get('version', '').strip()
-            license = row.get('license', '').strip()
-            
+            lic = row.get('license', '').strip()
             if name:
                 try:
-                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, license))
+                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, lic))
                     count += 1
                 except sqlite3.IntegrityError:
                     skipped += 1
         conn.commit()
         conn.close()
-        
-        flash(f'Successfully imported {count} software records. {skipped} duplicates skipped.', 'success')
+        flash(f'Imported {count} software records. {skipped} duplicates skipped.', 'success')
     else:
         flash('Invalid file format. Please upload a CSV file.', 'error')
-        
     return redirect(url_for('admin_software'))
 
 @app.route('/admin/software/delete/<int:sw_id>')
@@ -1294,6 +1343,7 @@ def delete_software(sw_id):
         return redirect(url_for('login'))
     conn = get_db()
     conn.execute('DELETE FROM software WHERE id=?', (sw_id,))
+    conn.execute('DELETE FROM lab_software WHERE software_id=?', (sw_id,))
     conn.commit()
     conn.close()
     return redirect(url_for('admin_software'))
@@ -1486,4 +1536,4 @@ def export_analytics_csv():
 # ---------- Run ----------
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)

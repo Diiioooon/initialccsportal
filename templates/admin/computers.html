@@ -28,6 +28,10 @@
     .lab-content {
       display: none;
       padding: 15px 0;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 14px;
     }
     .lab-content.active {
       display: block;
@@ -117,13 +121,13 @@
         {% if success %}<div class="alert-success" style="margin-top:12px;">{{ success }}</div>{% endif %}
 
         <!-- Summary stats -->
-        <div class="admin-stats" style="margin-top:20px;">
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:5px;">
           {% for lab in labs %}
-          <div class="stat-item">
-            <span class="stat-lbl">{{ lab['lab_name'] }}</span>
-            <span class="stat-num" style="font-size:14px;">
-              {{ computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length }} PCs
-            </span>
+          {% set cnt = computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length %}
+          {% set avail = computers | selectattr('lab_name','equalto', lab['lab_name']) | selectattr('status','equalto','Available') | list | length %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.04); font-size:11.5px;">
+            <span style="color:var(--muted);">{{ lab['lab_name'] }}</span>
+            <span style="font-weight:600;">{{ avail }}<span style="color:var(--muted);font-weight:400;">/{{ cnt }}</span></span>
           </div>
           {% endfor %}
         </div>
@@ -159,13 +163,15 @@
           <button type="submit" class="btn-create">Add PC</button>
         </form>
 
-        <!-- LAB TABS -->
-        <div class="lab-tabs" style="margin-bottom:0;">
-          {% for lab in labs %}
-          <div class="lab-tab {% if loop.first %}active{% endif %}" data-lab="lab-{{ lab['id'] }}">
-            {{ lab['lab_name'] }}
-          </div>
-          {% endfor %}
+        <!-- LAB SELECTOR -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:0; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:10px 14px;">
+          <label style="font-size:13px; font-weight:700; white-space:nowrap;">🖥️ Lab:</label>
+          <select id="labDropdown" onchange="switchComputerLab(this.value)"
+            style="flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:13px; color:var(--text); cursor:pointer;">
+            {% for lab in labs %}
+            <option value="lab-{{ lab['id'] }}" {% if loop.first %}selected{% endif %}>{{ lab['lab_name'] }}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <!-- PC sections per lab -->
@@ -251,24 +257,12 @@
     </div>
   </main>
 
-  <!-- Tab switching JavaScript -->
   <script>
-    const tabs = document.querySelectorAll('.lab-tab');
-    const contents = document.querySelectorAll('.lab-content');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', function () {
-        // Remove active from all tabs
-        tabs.forEach(t => t.classList.remove('active'));
-        // Hide all contents
-        contents.forEach(c => c.classList.remove('active'));
-        // Activate clicked tab
-        this.classList.add('active');
-        // Show corresponding content
-        const target = document.getElementById(this.dataset.lab);
-        if (target) target.classList.add('active');
-      });
-    });
+    function switchComputerLab(labId) {
+      document.querySelectorAll('.lab-content').forEach(c => c.classList.remove('active'));
+      const target = document.getElementById(labId);
+      if (target) target.classList.add('active');
+    }
   </script>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
