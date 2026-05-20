@@ -20,6 +20,29 @@
     select option { background: var(--white); color: var(--text); }
     .split-right .flat-field { margin-bottom: 22px; }
     .form-actions { margin-top: 14px; }
+
+    /* PC Grid */
+    .pc-grid-wrap { margin-top: 10px; display: none; }
+    .pc-legend {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 11px; font-weight: 600;
+    }
+    .pc-legend span { display: flex; align-items: center; gap: 4px; }
+    .pc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 7px;
+    }
+    .pc-badge {
+      padding: 7px 6px; border-radius: 7px; font-size: 11px; font-weight: 700;
+      text-align: center; border: 2px solid; transition: transform 0.1s, border-width 0.1s;
+      user-select: none;
+    }
+    .pc-badge.available { background: rgba(123,47,190,0.15); color: #a855f7; border-color: #7b2fbe; cursor: pointer; }
+    .pc-badge.available:hover { transform: scale(1.04); }
+    .pc-badge.available.selected { border-width: 3px; border-color: #a855f7; background: rgba(123,47,190,0.3); }
+    .pc-badge.occupied { background: rgba(230,168,23,0.12); color: #e6a817; border-color: #e6a817; cursor: not-allowed; opacity: 0.65; }
+    .pc-badge.maintenance { background: rgba(245,158,11,0.12); color: #f59e0b; border-color: #f59e0b; cursor: not-allowed; opacity: 0.65; }
+    .pc-badge.unavailable { background: rgba(136,136,136,0.12); color: #888; border-color: #555; cursor: not-allowed; opacity: 0.55; }
   </style>
 </head>
 <body>
@@ -83,10 +106,21 @@
 
           <div class="flat-field">
             <label>Assign PC (optional)</label>
-            <select name="pc_id" id="pc-select">
-              <option value="">-- Select a lab first --</option>
-            </select>
-            <small id="pc-loading" style="display:none; color:var(--muted);">Loading PCs...</small>
+            <!-- Hidden select carries the value for form submission -->
+            <select name="pc_id" id="pc-select" style="display:none;"></select>
+            <div id="pc-loading" style="display:none; font-size:12px; color:var(--muted); margin-top:4px;">Loading PCs…</div>
+
+            <!-- Visual PC grid (shown after lab is chosen) -->
+            <div class="pc-grid-wrap" id="pc-grid-wrap">
+              <div class="pc-legend">
+                <span style="color:#a855f7;">✅ Available</span>
+                <span style="color:#e6a817;">🔴 In Use</span>
+                <span style="color:#f59e0b;">🔧 Maintenance</span>
+                <span style="color:#888;">⛔ Unavailable</span>
+              </div>
+              <div class="pc-grid" id="pc-grid"></div>
+              <div id="pc-none" style="display:none;font-size:13px;color:var(--muted);padding:8px 0;">No PCs found for this lab.</div>
+            </div>
           </div>
 
           <div class="flat-field">
@@ -164,39 +198,80 @@
   <div id="flash-messages" data-messages='{{ get_flashed_messages(with_categories=true)|tojson }}' style="display:none;"></div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 
-  <!-- AJAX for PC dropdown -->
+  <!-- PC Grid JS -->
   <script>
     const labSelect = document.getElementById('lab-select');
     const pcSelect = document.getElementById('pc-select');
     const pcLoading = document.getElementById('pc-loading');
+    const pcGridWrap = document.getElementById('pc-grid-wrap');
+    const pcGrid = document.getElementById('pc-grid');
+    const pcNone = document.getElementById('pc-none');
 
     labSelect.addEventListener('change', function () {
       const lab = this.value;
-      pcSelect.innerHTML = '<option value="">-- Choose PC (optional) --</option>';
-      pcLoading.style.display = 'none';
+      pcGrid.innerHTML = '';
+      pcSelect.innerHTML = '<option value=""></option>';
+      pcSelect.value = '';
+      pcGridWrap.style.display = 'none';
+      pcNone.style.display = 'none';
       if (!lab) return;
 
-      pcLoading.style.display = 'inline';
+      pcLoading.style.display = 'block';
       fetch('/student/get_pcs/' + encodeURIComponent(lab))
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
           pcLoading.style.display = 'none';
+          pcGridWrap.style.display = 'block';
+
           if (!data.pcs || data.pcs.length === 0) {
-            pcSelect.innerHTML = '<option value="">No available PCs</option>';
+            pcNone.style.display = 'block';
             return;
           }
-          pcSelect.innerHTML = '<option value="">-- Choose PC (optional) --</option>';
+
+          // Build hidden select options
+          pcSelect.innerHTML = '<option value=""></option>';
           data.pcs.forEach(pc => {
-            if (pc.occupied == 1 || pc.status === 'Unavailable' || pc.status === 'Under Maintenance') return;
             const opt = document.createElement('option');
             opt.value = pc.id;
-            opt.textContent = pc.pc_number + ' (Available)';
+            opt.textContent = pc.pc_number;
             pcSelect.appendChild(opt);
+          });
+
+          // Build visual grid
+          data.pcs.forEach(pc => {
+            const occupied = pc.occupied == 1;
+            const maintenance = pc.status === 'Under Maintenance';
+            const unavailable = pc.status === 'Unavailable';
+            const available = !occupied && !maintenance && !unavailable;
+
+            const badge = document.createElement('div');
+            badge.className = 'pc-badge ' + (occupied ? 'occupied' : maintenance ? 'maintenance' : unavailable ? 'unavailable' : 'available');
+            badge.dataset.pcId = pc.id;
+            badge.title = occupied ? 'In Use' : maintenance ? 'Under Maintenance' : unavailable ? 'Unavailable' : 'Available';
+
+            const icon = occupied ? '🔴' : maintenance ? '🔧' : unavailable ? '⛔' : '✅';
+            badge.innerHTML = '<div>' + pc.pc_number + '</div><div style="font-size:10px;margin-top:2px;">' + icon + '</div>';
+
+            if (available) {
+              badge.addEventListener('click', function () {
+                // Deselect all
+                document.querySelectorAll('.pc-badge.available').forEach(b => b.classList.remove('selected'));
+                // If clicking already-selected, deselect
+                if (pcSelect.value == pc.id) {
+                  pcSelect.value = '';
+                } else {
+                  badge.classList.add('selected');
+                  pcSelect.value = pc.id;
+                }
+              });
+            }
+            pcGrid.appendChild(badge);
           });
         })
         .catch(err => {
           pcLoading.style.display = 'none';
-          pcSelect.innerHTML = '<option value="">Error loading PCs</option>';
+          pcNone.style.display = 'block';
+          pcNone.textContent = 'Error loading PCs.';
         });
     });
   </script>

@@ -114,35 +114,27 @@
         <p class="split-desc" style="margin-bottom:4px;"><strong>{{ student['course'] }}</strong> — {{ student['level'] }}</p>
         <p class="split-desc" style="margin-top:8px;">Sessions Left: <strong style="color:#fff; font-size:20px;">{{ student['sessions'] }}</strong></p>
 
-        <!-- Extra student details (from your old layout) -->
+        <!-- Student details matching register fields only -->
         <div style="width:100%; margin-top:20px;">
           <div class="info-row">
             <span class="info-lbl">ID Number</span>
             <span class="info-val">{{ student['idnum'] }}</span>
           </div>
           <div class="info-row">
-            <span class="info-lbl">Birthday</span>
-            <span class="info-val">March 3, 1990</span>
+            <span class="info-lbl">Email</span>
+            <span class="info-val">{{ student['email'] }}</span>
           </div>
           <div class="info-row">
-            <span class="info-lbl">Gender</span>
-            <span class="info-val">Male</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">Hometown</span>
-            <span class="info-val">Cebu City, Philippines</span>
-          </div>
-          <div class="info-row">
-            <span class="info-lbl">Major</span>
+            <span class="info-lbl">Course</span>
             <span class="info-val">{{ student['course'] }}</span>
           </div>
           <div class="info-row">
-            <span class="info-lbl">Year</span>
+            <span class="info-lbl">Year Level</span>
             <span class="info-val">{{ student['level'] }}</span>
           </div>
           <div class="info-row">
-            <span class="info-lbl">Semester</span>
-            <span class="info-val">2nd Semester</span>
+            <span class="info-lbl">Address</span>
+            <span class="info-val">{{ student['address'] or '—' }}</span>
           </div>
         </div>
       </div>

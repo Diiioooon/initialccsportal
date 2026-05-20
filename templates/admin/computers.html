@@ -26,7 +26,21 @@
     html:not([data-theme="dark"]) .lab-bar select { background:#fff; color:#1a1a1a; }
     .lab-bar select:focus { outline:none; border-color:#7b2fbe; }
 
-    .pc-table-wrap { max-height:52vh; overflow-y:auto; }
+    .lab-stat-card {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .lab-stat-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(168,85,247,0.35); }
+    .lab-stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .lab-stat-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .lab-stat-count { font-size: 11px; font-weight: 600; }
+    .lab-stat-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
+    .pc-table-wrap { max-height: 55vh; overflow-y: auto; }
+    .lab-stat-bar { height: 100%; border-radius: 2px; width: 0; }
 
     /* Status badges */
     .badge-maintenance {
@@ -103,13 +117,19 @@
         {% if success %}<div class="alert-success" style="margin-top:12px;font-size:12px;">{{ success }}</div>{% endif %}
 
         <!-- Lab availability summary -->
-        <div style="margin-top:18px;display:flex;flex-direction:column;gap:5px;">
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:6px;" id="labStatList">
           {% for lab in labs %}
           {% set cnt   = computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length %}
           {% set avail = computers | selectattr('lab_name','equalto', lab['lab_name']) | selectattr('status','equalto','Available') | list | length %}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,0.04);font-size:11.5px;">
-            <span style="color:var(--muted);">{{ lab['lab_name'] }}</span>
-            <span style="font-weight:600;">{{ avail }}<span style="color:var(--muted);font-weight:400;">/{{ cnt }}</span></span>
+          {% set pct = ((avail / cnt * 100) | int) if cnt > 0 else 0 %}
+          <div class="lab-stat-card" data-lab-id="{{ lab['id'] }}" data-pct="{{ pct }}" data-avail="{{ avail }}" data-cnt="{{ cnt }}">
+            <div class="lab-stat-row">
+              <span class="lab-stat-name">{{ lab['lab_name'] }}</span>
+              <span class="lab-stat-count">{{ avail }}/{{ cnt }}</span>
+            </div>
+            <div class="lab-stat-track">
+              <div class="lab-stat-bar" data-pct="{{ pct }}"></div>
+            </div>
           </div>
           {% endfor %}
         </div>
@@ -239,5 +259,24 @@
   </main>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Apply dynamic colors to lab stat cards
+    document.querySelectorAll('.lab-stat-card').forEach(function(card) {
+      var pct = parseInt(card.dataset.pct, 10);
+      var color = pct === 100 ? '#22c55e' : pct >= 60 ? '#7b2fbe' : '#f59e0b';
+      card.querySelector('.lab-stat-count').style.color = color;
+      var bar = card.querySelector('.lab-stat-bar');
+      bar.style.width = pct + '%';
+      bar.style.background = color;
+      // Click to switch lab
+      card.addEventListener('click', function() {
+        window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + card.dataset.labId;
+      });
+    });
+    // Lab dropdown change
+    document.getElementById('labSelect').addEventListener('change', function() {
+      window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + this.value;
+    });
+  </script>
 </body>
 </html>

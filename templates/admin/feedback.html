@@ -48,6 +48,11 @@
       </div>
       <div class="split-right">
         <h2 class="form-title">Feedback List</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            <div class="sw-flash {{ 'ok' if cat=='success' else 'err' }}" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);color:#22c55e;">{{ msg }}</div>
+          {% endfor %}
+        {% endwith %}
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
@@ -58,6 +63,7 @@
                 <th>Lab</th>
                 <th>PC</th>
                 <th>Date</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -69,9 +75,16 @@
                 <td>{{ f['lab'] or '-' }}</td>
                 <td>{{ f['pc_number'] if f['pc_number'] else '—' }}</td>
                 <td>{{ f['date'] }}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('delete_feedback', feedback_id=f['id']) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <button type="submit" class="btn-delete" style="font-size:11px;padding:4px 10px;"
+                      onclick="return confirm('Delete this feedback entry?')">Delete</button>
+                  </form>
+                </td>
               </tr>
               {% else %}
-              <tr><td colspan="6" class="no-data">No feedback submitted yet.</td></tr>
+              <tr><td colspan="7" class="no-data">No feedback submitted yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>

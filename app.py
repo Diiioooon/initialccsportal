@@ -475,8 +475,8 @@ def student_get_pcs(lab_name):
         SELECT cu.id, cu.pc_number, cu.status,
                CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
         FROM computer_units cu
-        LEFT JOIN sitin s ON s.pc_id = cu.id
-        WHERE cu.lab_id = ? AND cu.status = 'Available'
+        LEFT JOIN sitin s ON s.pc_id = cu.id AND (s.time_out IS NULL OR s.time_out = '')
+        WHERE cu.lab_id = ?
         ORDER BY cu.pc_number
     ''', (lab['id'],)).fetchall()
     conn.close()
@@ -1240,6 +1240,17 @@ def admin_feedback():
     ''').fetchall()
     conn.close()
     return render_template('admin/feedback.html', feedbacks=feedbacks)
+
+@app.route('/admin/feedback/delete/<int:feedback_id>', methods=['POST'])
+def delete_feedback(feedback_id):
+    if not admin_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    conn.execute('DELETE FROM feedback WHERE id=?', (feedback_id,))
+    conn.commit()
+    conn.close()
+    flash('Feedback deleted.', 'success')
+    return redirect(url_for('admin_feedback'))
 
 @app.route('/admin/notifications', methods=['GET', 'POST'])
 def admin_notifications():
