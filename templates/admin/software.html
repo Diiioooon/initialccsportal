@@ -6,103 +6,108 @@
   <title>CCS Admin | Software</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    .sw-page { display:grid; grid-template-columns:280px 1fr; min-height:calc(100vh - 52px); }
-
-    /* ── Sidebar ── */
-    .sw-sidebar {
-      background:var(--card,#1c1c2e); border-right:1px solid var(--border);
-      padding:20px 16px; display:flex; flex-direction:column; gap:16px;
-      position:sticky; top:52px; height:calc(100vh - 52px); overflow-y:auto;
-    }
+    /* ── Left sidebar additions ── */
     .sw-section-label {
       font-size:10px; font-weight:700; letter-spacing:1.2px;
-      text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+      text-transform:uppercase; color:rgba(255,255,255,0.45); margin:14px 0 7px;
     }
     .sw-add-form { display:flex; flex-direction:column; gap:8px; }
     .sw-input {
-      background:rgba(255,255,255,0.05); border:1px solid var(--border);
-      border-radius:7px; padding:8px 11px; font-size:12px; color:var(--text);
+      background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16);
+      border-radius:7px; padding:8px 11px; font-size:12px; color:#fff;
       width:100%; box-sizing:border-box; transition:border-color 0.15s;
     }
-    .sw-input:focus { outline:none; border-color:var(--purple,#7b2fbe); }
-    .sw-input::placeholder { color:var(--muted); }
-    .btn-add { background:var(--purple,#7b2fbe); color:#fff; border:none; border-radius:7px; padding:8px; font-size:12px; font-weight:700; cursor:pointer; width:100%; }
-    .btn-add:hover { opacity:0.85; }
-    .sw-divider { border:none; border-top:1px solid var(--border); }
+    .sw-input:focus { outline:none; border-color:#a855f7; }
+    .sw-input::placeholder { color:rgba(255,255,255,0.3); }
+    .btn-add-sw {
+      background:#7b2fbe; color:#fff; border:none; border-radius:7px;
+      padding:9px; font-size:12px; font-weight:700; cursor:pointer; width:100%;
+    }
+    .btn-add-sw:hover { opacity:0.82; }
+    .sw-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0; }
 
-    /* Catalog list */
-    .catalog-scroll { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:3px; min-height:0; }
+    .catalog-list { display:flex; flex-direction:column; gap:2px; max-height:300px; overflow-y:auto; }
     .catalog-row {
       display:flex; align-items:center; justify-content:space-between;
       padding:6px 8px; border-radius:6px; gap:8px;
-      border:1px solid transparent; transition:background 0.1s;
     }
-    .catalog-row:hover { background:rgba(255,255,255,0.04); border-color:var(--border); }
-    .catalog-name { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .catalog-meta { font-size:10px; color:var(--muted); }
+    .catalog-row:hover { background:rgba(255,255,255,0.06); }
+    .catalog-name { font-size:12px; font-weight:600; color:rgba(255,255,255,0.88); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .catalog-meta { font-size:10px; color:rgba(255,255,255,0.38); }
     .btn-del {
       flex-shrink:0; background:transparent; border:1px solid rgba(239,68,68,0.4);
-      color:#ef4444; border-radius:5px; padding:2px 7px; font-size:10px;
-      cursor:pointer; font-weight:700; transition:background 0.15s;
+      color:#ef4444; border-radius:5px; padding:2px 8px; font-size:10px;
+      font-weight:700; cursor:pointer; text-decoration:none;
     }
-    .btn-del:hover { background:rgba(239,68,68,0.15); }
+    .btn-del:hover { background:rgba(239,68,68,0.18); }
 
-    /* ── Main ── */
-    .sw-main { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
+    /* ── Right panel ── */
+    /* Force dark bg on split-right regardless of --white value */
+    .split-right {
+      background: #16162a !important;
+      color: var(--text);
+    }
+    html:not([data-theme="dark"]) .split-right {
+      background: #ffffff !important;
+    }
 
-    /* Lab selector bar */
-    .lab-selector-bar {
-      display:flex; align-items:center; gap:12px;
-      background:var(--card,#1c1c2e); border:1px solid var(--border);
-      border-radius:10px; padding:14px 18px;
+    /* Lab selector */
+    .lab-bar {
+      display:flex; align-items:center; gap:10px;
+      background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      border-radius:9px; padding:12px 16px; margin-bottom:22px;
     }
-    .lab-selector-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
-    .lab-select {
-      flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border);
-      border-radius:7px; padding:8px 12px; font-size:13px; color:var(--text);
-      cursor:pointer; appearance:none;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23888'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 10px center;
-      padding-right:30px;
+    html:not([data-theme="dark"]) .lab-bar { background:#f5f5fa; }
+
+    .lab-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
+    .lab-bar select {
+      flex:1; border:1px solid var(--border); border-radius:7px;
+      padding:8px 12px; font-size:13px; cursor:pointer;
+      /* dark */
+      background:#1e1e36; color:#eee;
     }
-    .lab-select:focus { outline:none; border-color:var(--purple,#7b2fbe); }
+    html:not([data-theme="dark"]) .lab-bar select {
+      background:#fff; color:#1a1a1a;
+    }
+    .lab-bar select:focus { outline:none; border-color:#7b2fbe; }
     .btn-save-lab {
-      background:var(--gold,#e6a817); color:#1a1a1a; border:none; border-radius:7px;
-      padding:8px 20px; font-size:13px; font-weight:700; cursor:pointer;
-      white-space:nowrap; transition:opacity 0.15s;
+      background:#e6a817; color:#1a1a1a; border:none; border-radius:7px;
+      padding:9px 20px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;
     }
-    .btn-save-lab:hover { opacity:0.85; }
+    .btn-save-lab:hover { opacity:0.86; }
 
-    /* Lab panel */
-    .lab-panel { display:none; }
-    .lab-panel.active { display:block; }
+    /* Software grid */
     .cat-label {
       font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-      color:var(--muted); padding:10px 0 6px; border-bottom:1px solid var(--border); margin-bottom:8px;
+      color:var(--muted); padding:12px 0 7px; border-bottom:1px solid var(--border); margin-bottom:8px;
     }
-    .sw-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:6px; margin-bottom:6px; }
+    .sw-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:6px; margin-bottom:4px; }
     .sw-card {
       display:flex; align-items:flex-start; gap:8px; padding:9px 11px;
       border:1px solid var(--border); border-radius:8px; cursor:pointer;
-      transition:border-color 0.15s, background 0.15s; background:rgba(255,255,255,0.02);
+      transition:border-color 0.15s, background 0.15s;
+      background:rgba(255,255,255,0.02);
     }
-    .sw-card:hover { border-color:rgba(123,47,190,0.5); background:rgba(123,47,190,0.06); }
-    .sw-card.on { border-color:var(--purple,#7b2fbe); background:rgba(123,47,190,0.12); }
-    .sw-card input[type=checkbox] { accent-color:var(--purple,#7b2fbe); margin-top:2px; flex-shrink:0; }
+    .sw-card:hover { border-color:rgba(168,85,247,0.5); background:rgba(123,47,190,0.07); }
+    .sw-card.on { border-color:#7b2fbe; background:rgba(123,47,190,0.14); }
+    html:not([data-theme="dark"]) .sw-card { background:#fafafa; }
+    html:not([data-theme="dark"]) .sw-card.on { background:rgba(123,47,190,0.07); }
+    .sw-card input[type=checkbox] { accent-color:#7b2fbe; margin-top:2px; flex-shrink:0; }
     .sw-card-name { font-size:12px; font-weight:600; color:var(--text); line-height:1.3; }
     .sw-card-meta { font-size:10px; color:var(--muted); margin-top:1px; }
 
-    /* Empty state */
-    .sw-empty { text-align:center; padding:50px 20px; color:var(--muted); }
-    .sw-empty-icon { font-size:36px; margin-bottom:10px; }
+    .save-bar {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-top:18px; padding-top:14px; border-top:1px solid var(--border);
+    }
+    .save-bar span { font-size:12px; color:var(--muted); }
+
+    .sw-empty { text-align:center; padding:60px 20px; color:var(--muted); }
 
     /* Flash */
-    .sw-flash {
-      padding:10px 16px; border-radius:8px; font-size:13px; font-weight:600;
-      margin-bottom:4px;
-    }
-    .sw-flash.ok { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.4); color:#22c55e; }
-    .sw-flash.err { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
+    .sw-flash { padding:10px 14px; border-radius:8px; font-size:13px; font-weight:600; margin-bottom:14px; }
+    .sw-flash.ok { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.4); color:#22c55e; }
+    .sw-flash.err { background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.3); color:#ef4444; }
   </style>
 </head>
 <body>
@@ -126,31 +131,40 @@
       <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint=='admin_rewards' else '' }}">Rewards</a></li>
       <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint=='admin_software' else '' }}">Software</a></li>
       <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint=='admin_computers' else '' }}">Computers</a></li>
-      <li><a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint=='admin_notifications' else '' }}">Notifications{% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}</a></li>
+      <li>
+        <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint=='admin_notifications' else '' }}">
+          Notifications{% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+        </a>
+      </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
-  <div class="sw-page">
+  <main class="admin-main">
+    <div class="admin-split-card">
 
-    <!-- SIDEBAR -->
-    <aside class="sw-sidebar">
-      <div>
-        <div class="sw-section-label">Add Software</div>
+      <!-- LEFT: catalog management -->
+      <div class="split-left">
+        <div class="split-logo-circle">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS"/>
+        </div>
+        <h2 class="split-title">Software</h2>
+        <p class="split-desc">Add or remove software from the catalog, then assign it per lab.</p>
+
+        <div class="sw-section-label">Add to Catalog</div>
         <form method="POST" class="sw-add-form">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
           <input type="hidden" name="action" value="add">
           <input class="sw-input" name="name" placeholder="Software name *" required>
           <input class="sw-input" name="version" placeholder="Version (e.g. 1.89)">
           <input class="sw-input" name="license" placeholder="License (e.g. Free)">
-          <button type="submit" class="btn-add">+ Add to Catalog</button>
+          <button type="submit" class="btn-add-sw">+ Add to Catalog</button>
         </form>
-      </div>
-      <hr class="sw-divider">
-      <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+
+        <hr class="sw-divider" style="margin-top:14px;">
         <div class="sw-section-label">Catalog ({{ softwares|length }})</div>
-        <div class="catalog-scroll">
+        <div class="catalog-list">
           {% for s in softwares %}
           <div class="catalog-row">
             <div style="min-width:0;">
@@ -158,56 +172,56 @@
               <div class="catalog-meta">{% if s['version'] %}v{{ s['version'] }}{% endif %}{% if s['license'] %} · {{ s['license'] }}{% endif %}</div>
             </div>
             <a href="{{ url_for('delete_software', sw_id=s['id']) }}"
-               onclick="return confirm('Delete \'{{ s.name }}\'? Removes from all labs.')"
+               onclick="return confirm('Delete \'{{ s.name }}\'? This removes it from all labs.')"
                class="btn-del">Del</a>
           </div>
           {% else %}
-          <div style="font-size:12px;color:var(--muted);padding:8px 0;">No software yet.</div>
+          <p style="font-size:12px;color:rgba(255,255,255,0.3);padding:6px 0;">No software yet.</p>
           {% endfor %}
         </div>
       </div>
-    </aside>
 
-    <!-- MAIN -->
-    <div class="sw-main">
+      <!-- RIGHT: per-lab assignment -->
+      <div class="split-right">
+        <h2 class="form-title">Lab Software Assignment</h2>
 
-      {% if error %}<div class="sw-flash err">{{ error }}</div>{% endif %}
-      {% if success %}<div class="sw-flash ok">{{ success }}</div>{% endif %}
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-          <div class="sw-flash {{ 'ok' if cat=='success' else 'err' }}">{{ msg }}</div>
-        {% endfor %}
-      {% endwith %}
-
-      {% if softwares %}
-
-      <!-- Lab selector -->
-      <div class="lab-selector-bar">
-        <label>🖥️ Laboratory:</label>
-        <select class="lab-select" id="labDropdown" onchange="switchLab(this.value)">
-          {% for lab in labs %}
-          <option value="lp-{{ lab.id }}" {% if loop.first %}selected{% endif %}>{{ lab['lab_name'] }}</option>
+        {% if error %}<div class="sw-flash err">{{ error }}</div>{% endif %}
+        {% if success %}<div class="sw-flash ok">{{ success }}</div>{% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            <div class="sw-flash {{ 'ok' if cat=='success' else 'err' }}">{{ msg }}</div>
           {% endfor %}
-        </select>
-        <button type="button" class="btn-save-lab" onclick="submitActiveForm()">💾 Save</button>
-      </div>
+        {% endwith %}
 
-      <!-- One panel per lab -->
-      {% for lab in labs %}
-      <div class="lab-panel {% if loop.first %}active{% endif %}" id="lp-{{ lab.id }}">
-        <form method="POST" action="{{ url_for('assign_lab_software', lab_id=lab.id) }}" id="form-{{ lab.id }}">
+        {% if softwares %}
+
+        <!-- Lab selector — changing it reloads the page with the right lab's data -->
+        <div class="lab-bar">
+          <label>🖥️ Select Lab:</label>
+          <select id="labSelect" onchange="goToLab(this.value)">
+            {% for lab in labs %}
+            <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>
+              {{ lab['lab_name'] }}
+            </option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn-save-lab" onclick="document.getElementById('swForm').submit()">💾 Save</button>
+        </div>
+
+        <!-- Software checkboxes for the selected lab only -->
+        {% set sel_lab = labs | selectattr('id','equalto', selected_lab_id) | first %}
+        <form method="POST" action="{{ url_for('assign_lab_software', lab_id=selected_lab_id) }}" id="swForm">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
 
           {% set categories = [
             ('💻 Programming & Development', ['Visual Studio Code','Visual Studio 2022','Dev-C++','Eclipse IDE','PyCharm Community','NetBeans IDE','Android Studio','Git','XAMPP','Node.js','Python','Java JDK']),
-            ('🗄️ Database Tools', ['MySQL Workbench','SQLite Browser','HeidiSQL']),
-            ('🌐 Network & Security', ['Cisco Packet Tracer','Wireshark','PuTTY','VirtualBox','VMware Workstation Player']),
-            ('📄 Office & Productivity', ['Microsoft Office 2021','LibreOffice','Notepad++','7-Zip']),
-            ('🎨 Design & Media', ['Adobe Photoshop','Adobe Illustrator','Figma','GIMP']),
-            ('🌍 Browsers', ['Google Chrome','Mozilla Firefox']),
-            ('📦 Other', [])
+            ('🗄️ Database Tools',            ['MySQL Workbench','SQLite Browser','HeidiSQL']),
+            ('🌐 Network & Security',        ['Cisco Packet Tracer','Wireshark','PuTTY','VirtualBox','VMware Workstation Player']),
+            ('📄 Office & Productivity',     ['Microsoft Office 2021','LibreOffice','Notepad++','7-Zip']),
+            ('🎨 Design & Media',            ['Adobe Photoshop','Adobe Illustrator','Figma','GIMP']),
+            ('🌍 Browsers',                  ['Google Chrome','Mozilla Firefox']),
+            ('📦 Other',                     [])
           ] %}
-
           {% set all_known = [] %}
           {% for _, names in categories[:-1] %}{% for n in names %}{% set _ = all_known.append(n) %}{% endfor %}{% endfor %}
 
@@ -224,11 +238,11 @@
             <div class="cat-label">{{ cat_label }}</div>
             <div class="sw-grid">
               {% for sw in cat_sw %}
-              {% set checked = sw.id in lab_software.get(lab.id, []) %}
-              <label class="sw-card {% if checked %}on{% endif %}">
-                <input type="checkbox" name="software_ids" value="{{ sw.id }}"
-                       {% if checked %}checked{% endif %}
-                       onchange="this.closest('label').classList.toggle('on',this.checked)">
+              {% set is_checked = sw['id'] in assigned_ids %}
+              <label class="sw-card {% if is_checked %}on{% endif %}">
+                <input type="checkbox" name="software_ids" value="{{ sw['id'] }}"
+                       {% if is_checked %}checked{% endif %}
+                       onchange="this.closest('label').classList.toggle('on', this.checked)">
                 <div>
                   <div class="sw-card-name">{{ sw['name'] }}</div>
                   <div class="sw-card-meta">{% if sw['version'] %}v{{ sw['version'] }}{% endif %}{% if sw['license'] %} · {{ sw['license'] }}{% endif %}</div>
@@ -239,38 +253,37 @@
             {% endif %}
           {% endfor %}
 
-          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
-            <span style="font-size:12px;color:var(--muted);align-self:center;">{{ lab['lab_name'] }}</span>
+          <div class="save-bar">
+            <span>
+              {% if sel_lab %}{{ sel_lab['lab_name'] }} — {% endif %}
+              {{ assigned_ids|length }} / {{ softwares|length }} assigned
+            </span>
             <button type="submit" class="btn-save-lab">💾 Save Changes</button>
           </div>
         </form>
-      </div>
-      {% endfor %}
 
-      {% else %}
-      <div class="sw-empty">
-        <div class="sw-empty-icon">📭</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">No software in the catalog</div>
-        <div style="font-size:12px;">Use the sidebar to add software to the catalog first.</div>
+        {% else %}
+        <div class="sw-empty">
+          <div style="font-size:36px;margin-bottom:10px;">📭</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px;">No software in the catalog yet</div>
+          <div style="font-size:13px;">Add software using the panel on the left.</div>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
+
     </div>
-  </div>
+  </main>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
-    function switchLab(panelId) {
-      document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
-      const panel = document.getElementById(panelId);
-      if (panel) panel.classList.add('active');
+    // Changing the dropdown reloads the page with the selected lab's data
+    function goToLab(labId) {
+      window.location.href = '{{ url_for("admin_software") }}?lab_id=' + labId;
     }
-    function submitActiveForm() {
-      const active = document.querySelector('.lab-panel.active form');
-      if (active) active.submit();
-    }
-    // Auto-dismiss flash after 4s
+
+    // Auto-dismiss flash messages
     document.querySelectorAll('.sw-flash').forEach(el => {
-      setTimeout(() => { el.style.transition='opacity 0.5s'; el.style.opacity='0'; }, 4000);
+      setTimeout(() => { el.style.transition = 'opacity 0.5s'; el.style.opacity = '0'; }, 4000);
     });
   </script>
 </body>

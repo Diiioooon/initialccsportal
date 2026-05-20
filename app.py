@@ -197,8 +197,6 @@ def init_db():
                         VALUES ('0000', 'Admin', 'CCS', '', 'admin@ccs.com', 'N/A', 'N/A', 'N/A', ?, 0)''',
                      (generate_password_hash('admin123'),))
 
-    for lab_name in [f'Lab {n}' for n in range(517, 531)]:
-        conn.execute('INSERT OR IGNORE INTO laboratory (lab_name) VALUES (?)', (lab_name,))
     conn.execute('''CREATE TABLE IF NOT EXISTS lab_software (
         lab_id INTEGER NOT NULL,
         software_id INTEGER NOT NULL,
@@ -207,11 +205,50 @@ def init_db():
         FOREIGN KEY (software_id) REFERENCES software(id)
     )''')
 
-    if conn.execute('SELECT COUNT(*) FROM computer_units').fetchone()[0] == 0:
-        for lab_id in range(1, 5):
-            for pc in range(1, 6):
-                conn.execute('INSERT INTO computer_units (pc_number, lab_id, status) VALUES (?, ?, ?)',
-                             (f'PC-{pc}', lab_id, 'Available'))
+    # Remove old Lab 1-4 (cleanup from old schema)
+    old_lab_ids = [r[0] for r in conn.execute(
+        "SELECT id FROM laboratory WHERE lab_name IN ('Lab 1','Lab 2','Lab 3','Lab 4')"
+    ).fetchall()]
+    if old_lab_ids:
+        conn.execute(f"DELETE FROM computer_units WHERE lab_id IN ({','.join('?'*len(old_lab_ids))})", old_lab_ids)
+        conn.execute(f"DELETE FROM laboratory WHERE id IN ({','.join('?'*len(old_lab_ids))})", old_lab_ids)
+
+    # Seed Labs 517-530
+    for lab_name in [f'Lab {n}' for n in range(517, 531)]:
+        conn.execute('INSERT OR IGNORE INTO laboratory (lab_name) VALUES (?)', (lab_name,))
+
+    # Seed 50 PCs per lab if missing
+    for lab_row in conn.execute("SELECT id FROM laboratory WHERE lab_name LIKE 'Lab 5%'").fetchall():
+        lab_id = lab_row[0]
+        if conn.execute('SELECT COUNT(*) FROM computer_units WHERE lab_id=?', (lab_id,)).fetchone()[0] == 0:
+            for pc in range(1, 51):
+                conn.execute('INSERT INTO computer_units (pc_number, lab_id, status) VALUES (?,?,?)',
+                             (f'PC-{pc:02d}', lab_id, 'Available'))
+
+    # Seed software catalog if empty
+    if conn.execute('SELECT COUNT(*) FROM software').fetchone()[0] == 0:
+        default_sw = [
+            ('Visual Studio Code','1.89','Free'),('Visual Studio 2022','17.10','Free (Community)'),
+            ('Dev-C++','6.3','Free'),('Eclipse IDE','2024-03','Free'),('PyCharm Community','2024.1','Free'),
+            ('NetBeans IDE','21','Free'),('Android Studio','Jellyfish','Free'),('Git','2.45','Free'),
+            ('XAMPP','8.2.12','Free'),('Node.js','20.14 LTS','Free'),('Python','3.12','Free'),
+            ('Java JDK','21 LTS','Free'),('MySQL Workbench','8.0','Free'),('SQLite Browser','3.12','Free'),
+            ('HeidiSQL','12.6','Free'),('Cisco Packet Tracer','8.2','Free (Student)'),
+            ('Wireshark','4.2','Free'),('PuTTY','0.81','Free'),('VirtualBox','7.0','Free'),
+            ('VMware Workstation Player','17','Free (Personal)'),('Microsoft Office 2021','2021','Licensed'),
+            ('LibreOffice','7.6','Free'),('Notepad++','8.6','Free'),('7-Zip','24.07','Free'),
+            ('Adobe Photoshop','CC 2024','Licensed'),('Adobe Illustrator','CC 2024','Licensed'),
+            ('Figma','Web','Free'),('GIMP','2.10','Free'),('Google Chrome','125','Free'),
+            ('Mozilla Firefox','126','Free'),
+        ]
+        conn.executemany('INSERT OR IGNORE INTO software (name,version,license) VALUES (?,?,?)', default_sw)
+
+    # Assign all software to all labs (517-530) if lab_software is empty
+    if conn.execute('SELECT COUNT(*) FROM lab_software').fetchone()[0] == 0:
+        labs = conn.execute("SELECT id FROM laboratory WHERE lab_name LIKE 'Lab 5%'").fetchall()
+        sw_ids = conn.execute("SELECT id FROM software").fetchall()
+        pairs = [(l[0], s[0]) for l in labs for s in sw_ids]
+        conn.executemany('INSERT OR IGNORE INTO lab_software (lab_id, software_id) VALUES (?,?)', pairs)
 
     conn.commit()
     conn.close()
@@ -1278,16 +1315,26 @@ def admin_software():
                     success = f'Software "{name}" added.'
                 except sqlite3.IntegrityError:
                     error = 'Software already exists.'
-    labs = conn.execute('SELECT * FROM laboratory ORDER BY lab_name').fetchall()
+
+    labs = conn.execute("SELECT * FROM laboratory WHERE lab_name LIKE 'Lab 5%' ORDER BY lab_name").fetchall()
     softwares = conn.execute('SELECT * FROM software ORDER BY name').fetchall()
-    # Get assigned software per lab
-    lab_software = {}
-    for lab in labs:
-        assigned = conn.execute('SELECT software_id FROM lab_software WHERE lab_id=?', (lab['id'],)).fetchall()
-        lab_software[lab['id']] = [r['software_id'] for r in assigned]
+
+    # Which lab is selected (default: first lab)
+    try:
+        selected_lab_id = int(request.args.get('lab_id', labs[0]['id'] if labs else 0))
+    except (ValueError, TypeError):
+        selected_lab_id = labs[0]['id'] if labs else 0
+
+    # Only fetch assigned software for the selected lab
+    assigned_ids = []
+    if selected_lab_id:
+        rows = conn.execute('SELECT software_id FROM lab_software WHERE lab_id=?', (selected_lab_id,)).fetchall()
+        assigned_ids = [r['software_id'] for r in rows]
+
     conn.close()
     return render_template('admin/software.html', softwares=softwares, labs=labs,
-                           lab_software=lab_software, error=error, success=success)
+                           selected_lab_id=selected_lab_id, assigned_ids=assigned_ids,
+                           error=error, success=success)
 
 @app.route('/admin/software/assign/<int:lab_id>', methods=['POST'])
 def assign_lab_software(lab_id):
@@ -1301,7 +1348,7 @@ def assign_lab_software(lab_id):
     conn.commit()
     conn.close()
     flash('Software updated for lab.', 'success')
-    return redirect(url_for('admin_software') + f'#lab-{lab_id}')
+    return redirect(url_for('admin_software', lab_id=lab_id))
 
 @app.route('/admin/software/import', methods=['POST'])
 def import_software():

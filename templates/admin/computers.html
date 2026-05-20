@@ -1,77 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CCS Admin | Computers</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    /* Quick tab styles – adjust colours to match your theme */
-    .lab-tab {
-      display: inline-block;
-      padding: 8px 20px;
-      margin: 0 4px 4px 0;
-      background: #f0f0f0;
-      border-radius: 6px 6px 0 0;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      border: 1px solid #ccc;
-      border-bottom: none;
-      color: #333;
+    /* Force right panel dark */
+    .split-right { background: #16162a !important; color: var(--text); }
+    html:not([data-theme="dark"]) .split-right { background: #ffffff !important; }
+
+    /* Lab selector bar */
+    .lab-bar {
+      display:flex; align-items:center; gap:10px;
+      background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      border-radius:9px; padding:11px 16px; margin-bottom:0;
+      border-bottom-left-radius:0; border-bottom-right-radius:0;
     }
-    .lab-tab.active {
-      background: var(--primary, #7b2fbe);
-      color: white;
-      border-color: var(--primary, #7b2fbe);
+    html:not([data-theme="dark"]) .lab-bar { background:#f5f5fa; }
+    .lab-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
+    .lab-bar select {
+      flex:1; border:1px solid var(--border); border-radius:7px;
+      padding:7px 12px; font-size:13px; cursor:pointer;
+      background:#1e1e36; color:#eee;
     }
-    .lab-content {
-      display: none;
-      padding: 15px 0;
-      border: 1px solid var(--border);
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      padding: 14px;
-    }
-    .lab-content.active {
-      display: block;
-    }
-    .pc-table-wrap {
-      max-height: 50vh;
-      overflow-y: auto;
-    }
+    html:not([data-theme="dark"]) .lab-bar select { background:#fff; color:#1a1a1a; }
+    .lab-bar select:focus { outline:none; border-color:#7b2fbe; }
+
+    /* Lab content panel */
+    .lab-panel { display:none; border:1px solid var(--border); border-top:none; border-radius:0 0 9px 9px; padding:16px; }
+    .lab-panel.active { display:block; }
+
+    .pc-table-wrap { max-height:52vh; overflow-y:auto; }
+
+    /* Status badges */
     .badge-maintenance {
-      background: #f59e0b;
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
+      background:#f59e0b; color:#fff; padding:2px 8px;
+      border-radius:12px; font-size:11px; font-weight:600;
     }
-    .btn-maintenance {
-      display: inline-block;
-      padding: 4px 10px;
-      font-size: 12px;
-      border-radius: 5px;
-      border: 1px solid #f59e0b;
-      background: transparent;
-      color: #f59e0b;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.15s, color 0.15s;
+    /* Action buttons */
+    .btn-maint {
+      padding:4px 10px; font-size:11px; border-radius:5px; font-weight:600; cursor:pointer;
+      border:1px solid #f59e0b; background:transparent; color:#f59e0b; transition:background 0.15s,color 0.15s;
     }
-    .btn-maintenance:hover {
-      background: #f59e0b;
-      color: #fff;
+    .btn-maint:hover { background:#f59e0b; color:#fff; }
+    .btn-maint.restore { border-color:#22c55e; color:#22c55e; }
+    .btn-maint.restore:hover { background:#22c55e; color:#fff; }
+
+    /* Form card for adding PC */
+    .form-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:9px; padding:18px 20px; margin-bottom:22px; }
+    html:not([data-theme="dark"]) .form-card { background:#fafafa; }
+    .form-card .form-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+    .form-card .form-field { flex:1; min-width:140px; display:flex; flex-direction:column; gap:5px; }
+    .form-card label { font-size:12px; font-weight:600; color:var(--muted); }
+    .form-card input, .form-card select {
+      background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:7px;
+      padding:8px 11px; font-size:13px; color:var(--text);
     }
-    .btn-maintenance.restore {
-      border-color: #22c55e;
-      color: #22c55e;
-    }
-    .btn-maintenance.restore:hover {
-      background: #22c55e;
-      color: #fff;
-    }
+    html:not([data-theme="dark"]) .form-card input,
+    html:not([data-theme="dark"]) .form-card select { background:#fff; color:#1a1a1a; }
+    .form-card input:focus, .form-card select:focus { outline:none; border-color:#7b2fbe; }
   </style>
 </head>
 <body>
@@ -82,27 +70,24 @@
       <span class="nav-title">College of Computer Studies Admin</span>
     </div>
     <ul class="nav-links">
-      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint == 'admin_home' else '' }}">Home</a></li>
-      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint == 'admin_search' else '' }}">Search</a></li>
-      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint == 'admin_students' else '' }}">Students</a></li>
-      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint == 'admin_sitin' else '' }}">Sit-in</a></li>
-      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint == 'admin_sitin_records' else '' }}">View Sit-in Records</a></li>
-      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}">Sit-in Reports</a></li>
-      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint == 'admin_feedback' else '' }}">Feedback Reports</a></li>
-      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint == 'admin_reservation' else '' }}">Reservation</a></li>
-      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint == 'admin_analytics' else '' }}">Analytics</a></li>
-      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint == 'admin_labrules_view' else '' }}">Lab Rules</a></li>
-      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint == 'admin_rewards' else '' }}">Rewards</a></li>
-      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint == 'admin_software' else '' }}">Software</a></li>
-      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint == 'admin_computers' else '' }}">Computers</a></li>
+      <li><a href="{{ url_for('admin_home') }}" class="{{ 'active' if request.endpoint=='admin_home' else '' }}">Home</a></li>
+      <li><a href="{{ url_for('admin_search') }}" class="{{ 'active' if request.endpoint=='admin_search' else '' }}">Search</a></li>
+      <li><a href="{{ url_for('admin_students') }}" class="{{ 'active' if request.endpoint=='admin_students' else '' }}">Students</a></li>
+      <li><a href="{{ url_for('admin_sitin') }}" class="{{ 'active' if request.endpoint=='admin_sitin' else '' }}">Sit-in</a></li>
+      <li><a href="{{ url_for('admin_sitin_records') }}" class="{{ 'active' if request.endpoint=='admin_sitin_records' else '' }}">View Sit-in Records</a></li>
+      <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint=='admin_reports' else '' }}">Sit-in Reports</a></li>
+      <li><a href="{{ url_for('admin_feedback') }}" class="{{ 'active' if request.endpoint=='admin_feedback' else '' }}">Feedback Reports</a></li>
+      <li><a href="{{ url_for('admin_reservation') }}" class="{{ 'active' if request.endpoint=='admin_reservation' else '' }}">Reservation</a></li>
+      <li><a href="{{ url_for('admin_analytics') }}" class="{{ 'active' if request.endpoint=='admin_analytics' else '' }}">Analytics</a></li>
+      <li><a href="{{ url_for('admin_labrules_view') }}" class="{{ 'active' if request.endpoint=='admin_labrules_view' else '' }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('admin_rewards') }}" class="{{ 'active' if request.endpoint=='admin_rewards' else '' }}">Rewards</a></li>
+      <li><a href="{{ url_for('admin_software') }}" class="{{ 'active' if request.endpoint=='admin_software' else '' }}">Software</a></li>
+      <li><a href="{{ url_for('admin_computers') }}" class="{{ 'active' if request.endpoint=='admin_computers' else '' }}">Computers</a></li>
       <li>
-  <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint == 'admin_notifications' else '' }}">
-    Notifications
-    {% if unread_count > 0 %}
-      <span class="notification-badge">{{ unread_count }}</span>
-    {% endif %}
-  </a>
-</li>
+        <a href="{{ url_for('admin_notifications') }}" class="{{ 'active' if request.endpoint=='admin_notifications' else '' }}">
+          Notifications{% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+        </a>
+      </li>
       <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
     </ul>
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
@@ -110,22 +95,24 @@
 
   <main class="admin-main">
     <div class="admin-split-card">
+
       <!-- LEFT -->
       <div class="split-left">
         <div class="split-logo-circle">
           <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
         </div>
         <h2 class="split-title">Computers</h2>
-        <p class="split-desc">Manage laboratory PC units.</p>
-        {% if error %}<div class="alert-error" style="margin-top:12px;">{{ error }}</div>{% endif %}
-        {% if success %}<div class="alert-success" style="margin-top:12px;">{{ success }}</div>{% endif %}
+        <p class="split-desc">Manage laboratory PC units — add, set to maintenance, or delete.</p>
 
-        <!-- Summary stats -->
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:5px;">
+        {% if error %}<div class="alert-error" style="margin-top:12px;font-size:12px;">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert-success" style="margin-top:12px;font-size:12px;">{{ success }}</div>{% endif %}
+
+        <!-- Lab availability summary -->
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:5px;">
           {% for lab in labs %}
-          {% set cnt = computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length %}
+          {% set cnt   = computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length %}
           {% set avail = computers | selectattr('lab_name','equalto', lab['lab_name']) | selectattr('status','equalto','Available') | list | length %}
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.04); font-size:11.5px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,0.04);font-size:11.5px;">
             <span style="color:var(--muted);">{{ lab['lab_name'] }}</span>
             <span style="font-weight:600;">{{ avail }}<span style="color:var(--muted);font-weight:400;">/{{ cnt }}</span></span>
           </div>
@@ -135,14 +122,14 @@
 
       <!-- RIGHT -->
       <div class="split-right">
-        <!-- Add PC form (unchanged) -->
-        <h2 class="form-title">Add Computer Unit</h2>
-        <form method="POST" class="form-card" style="margin-bottom:24px;">
+        <!-- Add PC form -->
+        <h2 class="form-title">Manage Computers</h2>
+        <form method="POST" class="form-card">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
           <div class="form-row">
             <div class="form-field">
-              <label>PC Number (e.g., PC-21)</label>
-              <input name="pc_number" placeholder="PC-21" required>
+              <label>PC Number (e.g. PC-51)</label>
+              <input name="pc_number" placeholder="PC-51" required>
             </div>
             <div class="form-field">
               <label>Laboratory</label>
@@ -152,43 +139,44 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="form-field" style="max-width:160px;">
+              <label>Status</label>
+              <select name="status">
+                <option>Available</option>
+                <option>Unavailable</option>
+              </select>
+            </div>
           </div>
-          <div class="form-field" style="max-width:200px;">
-            <label>Status</label>
-            <select name="status">
-              <option>Available</option>
-              <option>Unavailable</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-create">Add PC</button>
+          <button type="submit" class="btn-create" style="margin-top:4px;">+ Add PC</button>
         </form>
 
-        <!-- LAB SELECTOR -->
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:0; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:10px 14px;">
-          <label style="font-size:13px; font-weight:700; white-space:nowrap;">🖥️ Lab:</label>
-          <select id="labDropdown" onchange="switchComputerLab(this.value)"
-            style="flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:13px; color:var(--text); cursor:pointer;">
+        <!-- Lab selector dropdown -->
+        <div class="lab-bar">
+          <label>🖥️ View Lab:</label>
+          <select id="labSelect" onchange="switchLab(this.value)">
             {% for lab in labs %}
-            <option value="lab-{{ lab['id'] }}" {% if loop.first %}selected{% endif %}>{{ lab['lab_name'] }}</option>
+            <option value="lp-{{ lab['id'] }}" {% if loop.first %}selected{% endif %}>
+              {{ lab['lab_name'] }}
+            </option>
             {% endfor %}
           </select>
         </div>
 
-        <!-- PC sections per lab -->
+        <!-- Per-lab PC panels -->
         {% for lab in labs %}
-        {% set lab_computers = computers | selectattr('lab_name', 'equalto', lab['lab_name']) | list %}
-        <div id="lab-{{ lab['id'] }}" class="lab-content {% if loop.first %}active{% endif %}">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-            <h3 style="font-size:15px; font-weight:700; color:var(--text);">
-              🖥️ {{ lab['lab_name'] }}
-              <span style="font-size:12px; font-weight:400; color:var(--muted); margin-left:8px;">
-                {{ lab_computers | selectattr('status','equalto','Available') | list | length }} available
-                / {{ lab_computers | length }} total
+        {% set lab_pcs = computers | selectattr('lab_name','equalto', lab['lab_name']) | list %}
+        <div id="lp-{{ lab['id'] }}" class="lab-panel {% if loop.first %}active{% endif %}">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:14px;font-weight:700;color:var(--text);">
+              {{ lab['lab_name'] }}
+              <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
+                {{ lab_pcs | selectattr('status','equalto','Available') | list | length }} available / {{ lab_pcs|length }} total
               </span>
-            </h3>
+            </span>
           </div>
 
-          {% if lab_computers %}
+          {% if lab_pcs %}
           <div class="pc-table-wrap table-wrap">
             <table class="admin-table">
               <thead>
@@ -197,20 +185,19 @@
                   <th>PC Number</th>
                   <th>Status</th>
                   <th>In Use</th>
-                  <th>Software</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {% for c in lab_computers %}
+                {% for c in lab_pcs %}
                 <tr>
                   <td>{{ loop.index }}</td>
                   <td><strong>{{ c['pc_number'] }}</strong></td>
                   <td>
-                    {% if c['status'] == 'Available' %}
-                      <span class="badge badge-active">Available</span>
-                    {% elif c['status'] == 'Under Maintenance' %}
+                    {% if c['status'] == 'Under Maintenance' %}
                       <span class="badge badge-maintenance">🔧 Maintenance</span>
+                    {% elif c['status'] == 'Available' %}
+                      <span class="badge badge-active">Available</span>
                     {% else %}
                       <span class="badge badge-done">{{ c['status'] }}</span>
                     {% endif %}
@@ -219,28 +206,25 @@
                     {% if c['occupied'] %}
                       <span class="badge badge-pending">In Use</span>
                     {% else %}
-                      <span style="color:var(--muted); font-size:12px;">—</span>
+                      <span style="color:var(--muted);font-size:12px;">—</span>
                     {% endif %}
                   </td>
-                  <td>
-                    <a href="{{ url_for('assign_software', pc_id=c['id']) }}" class="btn-edit">Manage</a>
-                  </td>
-                  <td style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                     <!-- Maintenance toggle -->
                     <form method="POST" action="/admin/computers/maintenance/{{ c['id'] }}" style="display:inline;">
                       <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                       {% if c['status'] == 'Under Maintenance' %}
-                        <button type="submit" class="btn-maintenance restore" title="Restore to Available">✅ Restore</button>
+                        <button type="submit" class="btn-maint restore">✅ Restore</button>
                       {% else %}
-                        <button type="submit" class="btn-maintenance" title="Set Under Maintenance">🔧 Maintenance</button>
+                        <button type="submit" class="btn-maint">🔧 Maintenance</button>
                       {% endif %}
                     </form>
                     <!-- Delete -->
                     <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
                       <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
                       <button type="submit" class="btn-delete"
-                        onclick="return confirm('Delete {{ c.pc_number }} from {{ lab.lab_name }}?')"
-                        style="font-size:12px; padding:4px 10px;">Delete</button>
+                        onclick="return confirm('Delete {{ c.pc_number }}?')"
+                        style="font-size:11px;padding:4px 10px;">Delete</button>
                     </form>
                   </td>
                 </tr>
@@ -249,22 +233,22 @@
             </table>
           </div>
           {% else %}
-          <p style="font-size:13px; color:var(--muted); padding:10px 0;">No PCs in this lab yet.</p>
+          <p style="font-size:13px;color:var(--muted);padding:8px 0;">No PCs in this lab yet. Use the form above to add some.</p>
           {% endif %}
         </div>
         {% endfor %}
-      </div>
-    </div>
+
+      </div><!-- split-right -->
+    </div><!-- admin-split-card -->
   </main>
 
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
-    function switchComputerLab(labId) {
-      document.querySelectorAll('.lab-content').forEach(c => c.classList.remove('active'));
-      const target = document.getElementById(labId);
-      if (target) target.classList.add('active');
+    function switchLab(panelId) {
+      document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById(panelId);
+      if (panel) panel.classList.add('active');
     }
   </script>
-
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
