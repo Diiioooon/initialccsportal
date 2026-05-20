@@ -130,7 +130,7 @@
               <label>Laboratory</label>
               <select name="lab_id" required>
                 {% for lab in labs %}
-                <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>{{ lab['lab_name'] }}</option>
+                <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id | int %}selected{% endif %}>{{ lab['lab_name'] }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -145,21 +145,23 @@
           <button type="submit" class="btn-create" style="margin-top:4px;">+ Add PC</button>
         </form>
 
-        <!-- Lab selector dropdown -->
-        <div class="lab-bar">
-          <label>🖥️ View Lab:</label>
-          <select id="labSelect" onchange="switchLab(this.value)">
-            {% for lab in labs %}
-            <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>
-              {{ lab['lab_name'] }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
+        <!-- Lab selector — plain form submit, no JS needed -->
+        <form method="GET" action="{{ url_for('admin_computers') }}" style="margin-bottom:0;">
+          <div class="lab-bar">
+            <label>🖥️ View Lab:</label>
+            <select name="lab_id" onchange="this.form.submit()">
+              {% for lab in labs %}
+              <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id | int %}selected{% endif %}>
+                {{ lab['lab_name'] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
 
         <!-- Single lab panel (only show selected lab) -->
-        {% set selected_lab = labs | selectattr('id', 'equalto', selected_lab_id) | first %}
-        {% set lab_pcs = computers | selectattr('lab_id', 'equalto', selected_lab_id) | list %}
+        {% set selected_lab = labs | selectattr('id', 'equalto', selected_lab_id | int) | first %}
+        {% set lab_pcs = computers | selectattr('lab_id', 'equalto', selected_lab_id | int) | list %}
         
         {% if selected_lab %}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -237,10 +239,5 @@
   </main>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
-  <script>
-    function switchLab(labId) {
-      window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + labId;
-    }
-  </script>
 </body>
 </html>

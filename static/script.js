@@ -33,11 +33,11 @@ for (var i = 0; i < allInputs.length; i++) {
 }
 var allSelects = document.querySelectorAll('select');
 for (var i = 0; i < allSelects.length; i++) {
-  allSelects[i].onchange = function() {
+  allSelects[i].addEventListener('change', function() {
     this.classList.remove('invalid');
     var errorSpan = document.getElementById(this.id + '-error');
     if (errorSpan) errorSpan.textContent = '';
-  };
+  });
 }
 
 // ---------- Theme Toggle (works for both navbar button & floating button) ----------

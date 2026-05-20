@@ -201,22 +201,23 @@
 
         {% if softwares %}
 
-        <!-- Lab selector — changing it reloads the page with the right lab's data -->
-        <div class="lab-bar">
-          <label>🖥️ Select Lab:</label>
-          <select id="labSelect" onchange="goToLab(this.value)">
-            {% for lab in labs %}
-            <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>
-              {{ lab['lab_name'] }}
-            </option>
-            {% endfor %}
-          </select>
-          <button type="button" class="btn-save-lab" onclick="document.getElementById('swForm').submit()">💾 Save</button>
-        </div>
+        <!-- Lab selector — plain form submit, no JS needed -->
+        <form method="GET" action="{{ url_for('admin_software') }}" style="margin-bottom:0;">
+          <div class="lab-bar">
+            <label>🖥️ Select Lab:</label>
+            <select name="lab_id" onchange="this.form.submit()">
+              {% for lab in labs %}
+              <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id | int %}selected{% endif %}>
+                {{ lab['lab_name'] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </form>
 
         <!-- Software checkboxes for the selected lab only -->
-        {% set sel_lab = labs | selectattr('id','equalto', selected_lab_id) | first %}
-        <form method="POST" action="{{ url_for('assign_lab_software', lab_id=selected_lab_id) }}" id="swForm">
+        {% set sel_lab = labs | selectattr('id','equalto', selected_lab_id | int) | first %}
+        <form method="POST" action="{{ url_for('assign_lab_software', lab_id=selected_lab_id | int) }}" id="swForm">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
 
           {% set categories = [
@@ -282,11 +283,6 @@
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
-    // Changing the dropdown reloads the page with the selected lab's data
-    function goToLab(labId) {
-      window.location.href = '{{ url_for("admin_software") }}?lab_id=' + labId;
-    }
-
     // Auto-dismiss flash messages
     document.querySelectorAll('.sw-flash').forEach(el => {
       setTimeout(() => { el.style.transition = 'opacity 0.5s'; el.style.opacity = '0'; }, 4000);

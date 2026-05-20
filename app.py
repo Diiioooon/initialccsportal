@@ -1327,9 +1327,10 @@ def admin_software():
     labs = conn.execute("SELECT * FROM laboratory WHERE lab_name LIKE 'Lab 5%' ORDER BY lab_name").fetchall()
     softwares = conn.execute('SELECT * FROM software ORDER BY name').fetchall()
 
-    # Which lab is selected (default: first lab)
+    # Which lab is selected — check GET param, then POST form data, then default to first lab
     try:
-        selected_lab_id = int(request.args.get('lab_id', labs[0]['id'] if labs else 0))
+        raw_lab_id = request.args.get('lab_id') or request.form.get('lab_id')
+        selected_lab_id = int(raw_lab_id) if raw_lab_id else (labs[0]['id'] if labs else 0)
     except (ValueError, TypeError):
         selected_lab_id = labs[0]['id'] if labs else 0
 
@@ -1436,9 +1437,10 @@ def admin_computers():
     ''').fetchall()
     labs = conn.execute("SELECT * FROM laboratory WHERE lab_name LIKE 'Lab 5%' ORDER BY lab_name").fetchall()
     
-    # Get selected lab from URL param, default to first lab
+    # Get selected lab from URL param or POST form data, default to first lab
     try:
-        selected_lab_id = int(request.args.get('lab_id', labs[0]['id'] if labs else 0))
+        raw_lab_id = request.args.get('lab_id') or request.form.get('lab_id')
+        selected_lab_id = int(raw_lab_id) if raw_lab_id else (labs[0]['id'] if labs else 0)
     except (ValueError, TypeError):
         selected_lab_id = labs[0]['id'] if labs else 0
     
