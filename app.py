@@ -1306,13 +1306,21 @@ def admin_software():
             name = request.form.get('name', '').strip()
             version = request.form.get('version', '').strip()
             lic = request.form.get('license', '').strip()
+            lab_id = request.form.get('lab_id') # Optional: add directly to this lab
             if not name:
                 error = 'Software name is required.'
             else:
                 try:
-                    conn.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, lic))
+                    cur = conn.cursor()
+                    cur.execute('INSERT INTO software (name, version, license) VALUES (?, ?, ?)', (name, version, lic))
+                    sw_id = cur.lastrowid
+                    if lab_id:
+                        cur.execute('INSERT OR IGNORE INTO lab_software (lab_id, software_id) VALUES (?, ?)', (lab_id, sw_id))
                     conn.commit()
                     success = f'Software "{name}" added.'
+                    if lab_id:
+                        conn.close()
+                        return redirect(url_for('admin_software', lab_id=lab_id))
                 except sqlite3.IntegrityError:
                     error = 'Software already exists.'
 
@@ -1393,13 +1401,18 @@ def delete_software(sw_id):
     conn.execute('DELETE FROM lab_software WHERE software_id=?', (sw_id,))
     conn.commit()
     conn.close()
-    return redirect(url_for('admin_software'))
+    # Preserve lab_id from query parameter if present
+    lab_id = request.args.get('lab_id')
+    flash('Software removed from catalog.', 'success')
+    return redirect(url_for('admin_software', lab_id=lab_id) if lab_id else url_for('admin_software'))
 
 @app.route('/admin/computers', methods=['GET', 'POST'])
 def admin_computers():
     if not admin_required():
         return redirect(url_for('login'))
     error = success = None
+    conn = get_db()
+    
     if request.method == 'POST':
         pc_number = request.form['pc_number'].strip()
         lab_id = request.form['lab_id']
@@ -1407,47 +1420,59 @@ def admin_computers():
         if not pc_number or not lab_id:
             error = 'PC number and lab are required.'
         else:
-            conn = get_db()
             conn.execute('INSERT INTO computer_units (pc_number, lab_id, status) VALUES (?, ?, ?)',
                          (pc_number, lab_id, status))
             conn.commit()
-            conn.close()
             success = 'Computer unit added.'
-    conn = get_db()
+            conn.close()
+            return redirect(url_for('admin_computers', lab_id=lab_id))
+    
     computers = conn.execute('''
-        SELECT cu.id, cu.pc_number, cu.status, l.lab_name,
-               CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as occupied
+        SELECT cu.id, cu.pc_number, cu.status, l.lab_name, l.id as lab_id,
+               (SELECT COUNT(*) FROM sitin s WHERE s.pc_id = cu.id AND (s.time_out IS NULL OR s.time_out = '')) as occupied
         FROM computer_units cu
         JOIN laboratory l ON cu.lab_id = l.id
-        LEFT JOIN sitin s ON s.pc_id = cu.id
         ORDER BY l.lab_name, cu.pc_number
     ''').fetchall()
-    labs = conn.execute('SELECT * FROM laboratory').fetchall()
+    labs = conn.execute("SELECT * FROM laboratory WHERE lab_name LIKE 'Lab 5%' ORDER BY lab_name").fetchall()
+    
+    # Get selected lab from URL param, default to first lab
+    try:
+        selected_lab_id = int(request.args.get('lab_id', labs[0]['id'] if labs else 0))
+    except (ValueError, TypeError):
+        selected_lab_id = labs[0]['id'] if labs else 0
+    
     conn.close()
-    return render_template('admin/computers.html', computers=computers, labs=labs, error=error, success=success)
+    return render_template('admin/computers.html', computers=computers, labs=labs, 
+                          selected_lab_id=selected_lab_id, error=error, success=success)
 
 @app.route('/admin/computers/delete/<int:pc_id>', methods=['POST'])
 def delete_computer_unit(pc_id):
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
+    # Get lab_id before deleting
+    pc = conn.execute('SELECT lab_id FROM computer_units WHERE id=?', (pc_id,)).fetchone()
+    lab_id = pc['lab_id'] if pc else None
     conn.execute('DELETE FROM computer_units WHERE id=?', (pc_id,))
     conn.commit()
     conn.close()
-    return redirect(url_for('admin_computers'))
+    return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
 
 @app.route('/admin/computers/maintenance/<int:pc_id>', methods=['POST'])
 def toggle_maintenance(pc_id):
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    pc = conn.execute('SELECT status FROM computer_units WHERE id=?', (pc_id,)).fetchone()
+    pc = conn.execute('SELECT status, lab_id FROM computer_units WHERE id=?', (pc_id,)).fetchone()
+    lab_id = None
     if pc:
+        lab_id = pc['lab_id']
         new_status = 'Available' if pc['status'] == 'Under Maintenance' else 'Under Maintenance'
         conn.execute('UPDATE computer_units SET status=? WHERE id=?', (new_status, pc_id))
         conn.commit()
     conn.close()
-    return redirect(url_for('admin_computers'))
+    return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
 
 @app.route('/admin/pc/<int:pc_id>/software', methods=['GET', 'POST'])
 def assign_software(pc_id):

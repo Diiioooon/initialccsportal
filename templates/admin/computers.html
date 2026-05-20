@@ -14,8 +14,7 @@
     .lab-bar {
       display:flex; align-items:center; gap:10px;
       background:rgba(255,255,255,0.03); border:1px solid var(--border);
-      border-radius:9px; padding:11px 16px; margin-bottom:0;
-      border-bottom-left-radius:0; border-bottom-right-radius:0;
+      border-radius:9px; padding:11px 16px; margin-bottom:16px;
     }
     html:not([data-theme="dark"]) .lab-bar { background:#f5f5fa; }
     .lab-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
@@ -26,10 +25,6 @@
     }
     html:not([data-theme="dark"]) .lab-bar select { background:#fff; color:#1a1a1a; }
     .lab-bar select:focus { outline:none; border-color:#7b2fbe; }
-
-    /* Lab content panel */
-    .lab-panel { display:none; border:1px solid var(--border); border-top:none; border-radius:0 0 9px 9px; padding:16px; }
-    .lab-panel.active { display:block; }
 
     .pc-table-wrap { max-height:52vh; overflow-y:auto; }
 
@@ -135,7 +130,7 @@
               <label>Laboratory</label>
               <select name="lab_id" required>
                 {% for lab in labs %}
-                <option value="{{ lab['id'] }}">{{ lab['lab_name'] }}</option>
+                <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>{{ lab['lab_name'] }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -155,88 +150,87 @@
           <label>🖥️ View Lab:</label>
           <select id="labSelect" onchange="switchLab(this.value)">
             {% for lab in labs %}
-            <option value="lp-{{ lab['id'] }}" {% if loop.first %}selected{% endif %}>
+            <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id %}selected{% endif %}>
               {{ lab['lab_name'] }}
             </option>
             {% endfor %}
           </select>
         </div>
 
-        <!-- Per-lab PC panels -->
-        {% for lab in labs %}
-        {% set lab_pcs = computers | selectattr('lab_name','equalto', lab['lab_name']) | list %}
-        <div id="lp-{{ lab['id'] }}" class="lab-panel {% if loop.first %}active{% endif %}">
-
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <span style="font-size:14px;font-weight:700;color:var(--text);">
-              {{ lab['lab_name'] }}
-              <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
-                {{ lab_pcs | selectattr('status','equalto','Available') | list | length }} available / {{ lab_pcs|length }} total
-              </span>
+        <!-- Single lab panel (only show selected lab) -->
+        {% set selected_lab = labs | selectattr('id', 'equalto', selected_lab_id) | first %}
+        {% set lab_pcs = computers | selectattr('lab_id', 'equalto', selected_lab_id) | list %}
+        
+        {% if selected_lab %}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <span style="font-size:14px;font-weight:700;color:var(--text);">
+            {{ selected_lab['lab_name'] }}
+            <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
+              {{ lab_pcs | selectattr('status','equalto','Available') | list | length }} available / {{ lab_pcs|length }} total
             </span>
-          </div>
-
-          {% if lab_pcs %}
-          <div class="pc-table-wrap table-wrap">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>PC Number</th>
-                  <th>Status</th>
-                  <th>In Use</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for c in lab_pcs %}
-                <tr>
-                  <td>{{ loop.index }}</td>
-                  <td><strong>{{ c['pc_number'] }}</strong></td>
-                  <td>
-                    {% if c['status'] == 'Under Maintenance' %}
-                      <span class="badge badge-maintenance">🔧 Maintenance</span>
-                    {% elif c['status'] == 'Available' %}
-                      <span class="badge badge-active">Available</span>
-                    {% else %}
-                      <span class="badge badge-done">{{ c['status'] }}</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if c['occupied'] %}
-                      <span class="badge badge-pending">In Use</span>
-                    {% else %}
-                      <span style="color:var(--muted);font-size:12px;">—</span>
-                    {% endif %}
-                  </td>
-                  <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                    <!-- Maintenance toggle -->
-                    <form method="POST" action="/admin/computers/maintenance/{{ c['id'] }}" style="display:inline;">
-                      <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-                      {% if c['status'] == 'Under Maintenance' %}
-                        <button type="submit" class="btn-maint restore">✅ Restore</button>
-                      {% else %}
-                        <button type="submit" class="btn-maint">🔧 Maintenance</button>
-                      {% endif %}
-                    </form>
-                    <!-- Delete -->
-                    <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
-                      <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-                      <button type="submit" class="btn-delete"
-                        onclick="return confirm('Delete {{ c.pc_number }}?')"
-                        style="font-size:11px;padding:4px 10px;">Delete</button>
-                    </form>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% else %}
-          <p style="font-size:13px;color:var(--muted);padding:8px 0;">No PCs in this lab yet. Use the form above to add some.</p>
-          {% endif %}
+          </span>
         </div>
-        {% endfor %}
+
+        {% if lab_pcs %}
+        <div class="pc-table-wrap table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>PC Number</th>
+                <th>Status</th>
+                <th>In Use</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in lab_pcs %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ c['pc_number'] }}</strong></td>
+                <td>
+                  {% if c['status'] == 'Under Maintenance' %}
+                    <span class="badge badge-maintenance">🔧 Maintenance</span>
+                  {% elif c['status'] == 'Available' %}
+                    <span class="badge badge-active">Available</span>
+                  {% else %}
+                    <span class="badge badge-done">{{ c['status'] }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if c['occupied'] %}
+                    <span class="badge badge-pending">In Use</span>
+                  {% else %}
+                    <span style="color:var(--muted);font-size:12px;">—</span>
+                  {% endif %}
+                </td>
+                <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                  <!-- Maintenance toggle -->
+                  <form method="POST" action="/admin/computers/maintenance/{{ c['id'] }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    {% if c['status'] == 'Under Maintenance' %}
+                      <button type="submit" class="btn-maint restore">✅ Restore</button>
+                    {% else %}
+                      <button type="submit" class="btn-maint">🔧 Maintenance</button>
+                    {% endif %}
+                  </form>
+                  <!-- Delete -->
+                  <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                    <button type="submit" class="btn-delete"
+                      onclick="return confirm('Delete {{ c.pc_number }}?')"
+                      style="font-size:11px;padding:4px 10px;">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p style="font-size:13px;color:var(--muted);padding:8px 0;">No PCs in this lab yet. Use the form above to add some.</p>
+        {% endif %}
+        {% endif %}
 
       </div><!-- split-right -->
     </div><!-- admin-split-card -->
@@ -244,10 +238,8 @@
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
-    function switchLab(panelId) {
-      document.querySelectorAll('.lab-panel').forEach(p => p.classList.remove('active'));
-      const panel = document.getElementById(panelId);
-      if (panel) panel.classList.add('active');
+    function switchLab(labId) {
+      window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + labId;
     }
   </script>
 </body>

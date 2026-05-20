@@ -156,6 +156,7 @@
         <form method="POST" class="sw-add-form">
           <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
           <input type="hidden" name="action" value="add">
+          <input type="hidden" name="lab_id" value="{{ selected_lab_id }}">
           <input class="sw-input" name="name" placeholder="Software name *" required>
           <input class="sw-input" name="version" placeholder="Version (e.g. 1.89)">
           <input class="sw-input" name="license" placeholder="License (e.g. Free)">
@@ -168,11 +169,16 @@
           {% for s in softwares %}
           <div class="catalog-row">
             <div style="min-width:0;">
-              <div class="catalog-name" title="{{ s['name'] }}">{{ s['name'] }}</div>
+              <div class="catalog-name" title="{{ s['name'] }}">
+                {{ s['name'] }}
+                {% if s['id'] in assigned_ids %}
+                <span style="color:#22c55e;font-size:9px;margin-left:4px;">● Assigned</span>
+                {% endif %}
+              </div>
               <div class="catalog-meta">{% if s['version'] %}v{{ s['version'] }}{% endif %}{% if s['license'] %} · {{ s['license'] }}{% endif %}</div>
             </div>
-            <a href="{{ url_for('delete_software', sw_id=s['id']) }}"
-               onclick="return confirm('Delete \'{{ s.name }}\'? This removes it from all labs.')"
+            <a href="{{ url_for('delete_software', sw_id=s['id'], lab_id=selected_lab_id) }}"
+               onclick="return confirm('Delete \'{{ s.name }}\' This removes it from all labs.')"
                class="btn-del">Del</a>
           </div>
           {% else %}
