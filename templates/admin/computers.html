@@ -1,74 +1,466 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CCS Admin | Computers</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <style>
-    /* Force right panel dark */
-    .split-right { background: #16162a !important; color: var(--text); }
-    html:not([data-theme="dark"]) .split-right { background: #ffffff !important; }
-
-    /* Lab selector bar */
-    .lab-bar {
-      display:flex; align-items:center; gap:10px;
-      background:rgba(255,255,255,0.03); border:1px solid var(--border);
-      border-radius:9px; padding:11px 16px; margin-bottom:16px;
+    /* ── Computers page wrapper ── */
+    .computers-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 28px;
+      gap: 16px;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
     }
-    html:not([data-theme="dark"]) .lab-bar { background:#f5f5fa; }
-    .lab-bar label { font-size:13px; font-weight:700; white-space:nowrap; color:var(--text); }
-    .lab-bar select {
-      flex:1; border:1px solid var(--border); border-radius:7px;
-      padding:7px 12px; font-size:13px; cursor:pointer;
-      background:#1e1e36; color:#eee;
-    }
-    html:not([data-theme="dark"]) .lab-bar select { background:#fff; color:#1a1a1a; }
-    .lab-bar select:focus { outline:none; border-color:#7b2fbe; }
 
-    .lab-stat-card {
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
+    /* ── Lab availability summary chips ── */
+    .lab-avail-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .lab-avail-chip {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 10px;
+      padding: 7px 15px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.70);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      user-select: none;
     }
-    .lab-stat-card:hover { background: rgba(255,255,255,0.09); border-color: rgba(168,85,247,0.35); }
-    .lab-stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-    .lab-stat-name { font-size: 12px; font-weight: 700; color: var(--text); }
-    .lab-stat-count { font-size: 11px; font-weight: 600; }
-    .lab-stat-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
-    .pc-table-wrap { max-height: 55vh; overflow-y: auto; }
-    .lab-stat-bar { height: 100%; border-radius: 2px; width: 0; }
+    .lab-avail-chip:hover { background: rgba(255,255,255,0.11); }
+    .lab-avail-chip.active {
+      background: rgba(123,47,190,0.25);
+      border-color: rgba(168,85,247,0.50);
+      color: #fff;
+    }
+    .chip-num { font-weight: 700; }
+    .chip-num.green { color: #4ade80; }
+    .chip-num.yellow { color: #fbbf24; }
+    .chip-num.red { color: #f87171; }
 
-    /* Status badges */
-    .badge-maintenance {
-      background:#f59e0b; color:#fff; padding:2px 8px;
-      border-radius:12px; font-size:11px; font-weight:600;
+    /* ── Main card ── */
+    .pc-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      overflow: hidden;
+      flex: 1;
     }
-    /* Action buttons */
-    .btn-maint {
-      padding:4px 10px; font-size:11px; border-radius:5px; font-weight:600; cursor:pointer;
-      border:1px solid #f59e0b; background:transparent; color:#f59e0b; transition:background 0.15s,color 0.15s;
-    }
-    .btn-maint:hover { background:#f59e0b; color:#fff; }
-    .btn-maint.restore { border-color:#22c55e; color:#22c55e; }
-    .btn-maint.restore:hover { background:#22c55e; color:#fff; }
 
-    /* Form card for adding PC */
-    .form-card { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:9px; padding:18px 20px; margin-bottom:22px; }
-    html:not([data-theme="dark"]) .form-card { background:#fafafa; }
-    .form-card .form-row { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
-    .form-card .form-field { flex:1; min-width:140px; display:flex; flex-direction:column; gap:5px; }
-    .form-card label { font-size:12px; font-weight:600; color:var(--muted); }
-    .form-card input, .form-card select {
-      background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:7px;
-      padding:8px 11px; font-size:13px; color:var(--text);
+    /* ── Lab tabs ── */
+    .lab-tabs {
+      display: flex;
+      gap: 3px;
+      padding: 12px 18px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      overflow-x: auto;
+      scrollbar-width: none;
     }
-    html:not([data-theme="dark"]) .form-card input,
-    html:not([data-theme="dark"]) .form-card select { background:#fff; color:#1a1a1a; }
-    .form-card input:focus, .form-card select:focus { outline:none; border-color:#7b2fbe; }
+    .lab-tabs::-webkit-scrollbar { display: none; }
+    .lab-tab {
+      padding: 7px 16px;
+      border-radius: 7px 7px 0 0;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: rgba(255,255,255,0.50);
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .lab-tab:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .lab-tab.active {
+      background: rgba(123,47,190,0.28);
+      border-color: rgba(168,85,247,0.35);
+      color: #fff;
+    }
+
+    /* ── Panel body ── */
+    .pc-panel-body { padding: 20px 22px; }
+
+    /* ── Panel header ── */
+    .pc-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pc-panel-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pc-stats-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .pc-stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.15s;
+    }
+    .pc-stat-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .pc-stat-badge.avail {
+      background: rgba(74,222,128,0.13);
+      border: 1px solid rgba(74,222,128,0.30);
+      color: #4ade80;
+    }
+    .pc-stat-badge.maint {
+      background: rgba(251,191,36,0.13);
+      border: 1px solid rgba(251,191,36,0.30);
+      color: #fbbf24;
+    }
+    .pc-stat-badge.inuse {
+      background: rgba(96,165,250,0.13);
+      border: 1px solid rgba(96,165,250,0.30);
+      color: #60a5fa;
+    }
+    .btn-select-multi {
+      background: transparent;
+      border: 1px solid rgba(168,85,247,0.40);
+      color: #c084fc;
+      padding: 5px 13px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-select-multi:hover,
+    .btn-select-multi.active {
+      background: rgba(168,85,247,0.20);
+      color: #fff;
+      border-color: rgba(168,85,247,0.70);
+    }
+
+    /* ── Instructor desk label ── */
+    .desk-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .desk-label::before,
+    .desk-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* ── PC Grid ── */
+    .pc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      max-height: 58vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .pc-grid::-webkit-scrollbar { width: 5px; }
+    .pc-grid::-webkit-scrollbar-track { background: transparent; }
+    .pc-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+    /* ── PC Card ── */
+    .pc-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 6px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      user-select: none;
+      position: relative;
+    }
+    .pc-unit:hover { transform: translateY(-2px); }
+
+    /* Available */
+    .pc-unit.available {
+      background: rgba(74,222,128,0.08);
+      border-color: rgba(74,222,128,0.20);
+    }
+    .pc-unit.available:hover { background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.40); }
+
+    /* Maintenance */
+    .pc-unit.maintenance {
+      background: rgba(251,191,36,0.08);
+      border-color: rgba(251,191,36,0.25);
+    }
+    .pc-unit.maintenance:hover { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.45); }
+
+    /* In use / occupied */
+    .pc-unit.occupied {
+      background: rgba(96,165,250,0.08);
+      border-color: rgba(96,165,250,0.25);
+    }
+    .pc-unit.occupied:hover { background: rgba(96,165,250,0.14); }
+
+    /* Selected (multi-select) */
+    .pc-unit.selected {
+      border-color: #a855f7 !important;
+      background: rgba(168,85,247,0.18) !important;
+      box-shadow: 0 0 0 2px rgba(168,85,247,0.25);
+    }
+
+    /* Monitor SVG icon */
+    .pc-monitor {
+      width: 44px;
+      height: 36px;
+    }
+
+    /* Blink animation for in-use */
+    @keyframes blink-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+    .pc-unit.occupied .pc-status-dot { animation: blink-dot 1.4s ease-in-out infinite; }
+
+    /* Status dot */
+    .pc-status-dot {
+      position: absolute;
+      top: 7px;
+      right: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .pc-unit.available .pc-status-dot { background: #4ade80; }
+    .pc-unit.maintenance .pc-status-dot { background: #fbbf24; }
+    .pc-unit.occupied .pc-status-dot { background: #60a5fa; }
+
+    /* Check mark for selected */
+    .pc-check {
+      position: absolute;
+      top: 5px;
+      left: 8px;
+      font-size: 10px;
+      color: #a855f7;
+      display: none;
+    }
+    .pc-unit.selected .pc-check { display: block; }
+
+    .pc-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+      text-align: center;
+    }
+    .pc-status-text {
+      font-size: 10px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .pc-unit.available .pc-status-text { color: #4ade80; }
+    .pc-unit.maintenance .pc-status-text { color: #fbbf24; }
+    .pc-unit.occupied .pc-status-text { color: #60a5fa; }
+
+    /* ── Multi-select action bar ── */
+    .multi-action-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: rgba(168,85,247,0.10);
+      border: 1px solid rgba(168,85,247,0.25);
+      border-radius: 9px;
+      flex-wrap: wrap;
+    }
+    .multi-action-bar.visible { display: flex; }
+    .multi-action-bar span {
+      font-size: 13px;
+      font-weight: 600;
+      color: #c084fc;
+      flex: 1;
+    }
+    .btn-bulk {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn-bulk:hover { opacity: 0.85; }
+    .btn-bulk.maint { background: #fbbf24; color: #1a1a1a; }
+    .btn-bulk.restore { background: #4ade80; color: #1a1a1a; }
+    .btn-bulk.del { background: #f87171; color: #fff; }
+    .btn-bulk.cancel { background: rgba(255,255,255,0.10); color: #fff; }
+
+    /* ── Add PC form (collapsible) ── */
+    .add-pc-toggle {
+      background: rgba(123,47,190,0.18);
+      border: 1px solid rgba(168,85,247,0.30);
+      color: #c084fc;
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .add-pc-toggle:hover { background: rgba(123,47,190,0.30); color: #fff; }
+
+    .add-pc-form {
+      display: none;
+      margin-top: 14px;
+      padding: 16px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+    }
+    .add-pc-form.open { display: block; }
+    .add-pc-form .form-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .add-pc-form .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      min-width: 120px;
+    }
+    .add-pc-form label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.50);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .add-pc-form input,
+    .add-pc-form select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 7px;
+      padding: 8px 11px;
+      font-size: 13px;
+      color: #fff;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-pc-form input:focus,
+    .add-pc-form select:focus { border-color: #7b2fbe; }
+    .add-pc-form select option { background: #1a1a2e; color: #eee; }
+
+    /* ── PC context menu (right-click / single actions) ── */
+    .pc-ctx-menu {
+      position: fixed;
+      z-index: 999;
+      background: #1e1e2e;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 6px 4px;
+      min-width: 170px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: none;
+    }
+    .pc-ctx-menu.open { display: block; }
+    .ctx-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      color: rgba(255,255,255,0.80);
+      transition: background 0.12s, color 0.12s;
+    }
+    .ctx-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .ctx-item.danger { color: #f87171; }
+    .ctx-item.danger:hover { background: rgba(248,113,113,0.12); }
+    .ctx-sep {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+      margin: 4px 10px;
+    }
+
+    /* ── Light mode adjustments ── */
+    html:not([data-theme="dark"]) .pc-card,
+    html:not([data-theme="dark"]) .add-pc-form {
+      background: #fff;
+      border-color: #e2e2e0;
+    }
+    html:not([data-theme="dark"]) .lab-tab.active {
+      background: rgba(123,47,190,0.12);
+      border-color: rgba(123,47,190,0.30);
+      color: #3d0070;
+    }
+    html:not([data-theme="dark"]) .lab-tab { color: #888; }
+    html:not([data-theme="dark"]) .lab-avail-chip {
+      background: #f5f5fa;
+      border-color: #e2e2e0;
+      color: #555;
+    }
+    html:not([data-theme="dark"]) .lab-avail-chip.active {
+      background: rgba(123,47,190,0.10);
+      border-color: rgba(123,47,190,0.35);
+      color: #3d0070;
+    }
+    html:not([data-theme="dark"]) .pc-panel-title { color: #1a1a1a; }
+    html:not([data-theme="dark"]) .pc-label { color: #1a1a1a; }
+    html:not([data-theme="dark"]) .pc-unit.available { background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.30); }
+    html:not([data-theme="dark"]) .pc-unit.maintenance { background: rgba(251,191,36,0.10); border-color: rgba(251,191,36,0.35); }
+    html:not([data-theme="dark"]) .pc-unit.occupied { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.30); }
+    html:not([data-theme="dark"]) .pc-ctx-menu { background: #fff; border-color: #e2e2e0; }
+    html:not([data-theme="dark"]) .ctx-item { color: #333; }
+    html:not([data-theme="dark"]) .desk-label { color: rgba(0,0,0,0.30); }
+    html:not([data-theme="dark"]) .desk-label::before,
+    html:not([data-theme="dark"]) .desk-label::after { background: rgba(0,0,0,0.10); }
+    html:not([data-theme="dark"]) .add-pc-form input,
+    html:not([data-theme="dark"]) .add-pc-form select {
+      background: #fff;
+      border-color: #d8c0f0;
+      color: #1a1a1a;
+    }
+    html:not([data-theme="dark"]) .add-pc-form label { color: #7b2fbe; }
+    html:not([data-theme="dark"]) .multi-action-bar { background: rgba(123,47,190,0.06); border-color: rgba(123,47,190,0.20); }
   </style>
 </head>
 <body>
@@ -102,181 +494,307 @@
     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
   </nav>
 
-  <main class="admin-main">
-    <div class="admin-split-card">
+  <div class="computers-main">
 
-      <!-- LEFT -->
-      <div class="split-left">
-        <div class="split-logo-circle">
-          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS">
+    {# ── Lab availability summary bar ── #}
+    <div class="lab-avail-bar" id="availBar">
+      {% for lab in labs %}
+        {% set lab_pcs = computers | selectattr('lab_id','equalto', lab['id']) | list %}
+        {% set avail   = lab_pcs | selectattr('status','equalto','Available') | list | length %}
+        {% set total   = lab_pcs | length %}
+        {% set pct     = ((avail / total * 100) | int) if total > 0 else 0 %}
+        <div class="lab-avail-chip {{ 'active' if lab['id'] == selected_lab_id | int else '' }}"
+             data-lab-id="{{ lab['id'] }}"
+             onclick="switchLab({{ lab['id'] }})">
+          {{ lab['lab_name'] }} —
+          <span class="chip-num {{ 'green' if pct == 100 else ('yellow' if pct >= 50 else 'red') }}">
+            {{ avail }}
+          </span>
+          / {{ total }} available
         </div>
-        <h2 class="split-title">Computers</h2>
-        <p class="split-desc">Manage laboratory PC units — add, set to maintenance, or delete.</p>
+      {% endfor %}
+    </div>
 
-        {% if error %}<div class="alert-error" style="margin-top:12px;font-size:12px;">{{ error }}</div>{% endif %}
-        {% if success %}<div class="alert-success" style="margin-top:12px;font-size:12px;">{{ success }}</div>{% endif %}
+    {# ── Main card ── #}
+    <div class="pc-card">
 
-        <!-- Lab availability summary -->
-        <div style="margin-top:18px;display:flex;flex-direction:column;gap:6px;" id="labStatList">
-          {% for lab in labs %}
-          {% set cnt   = computers | selectattr('lab_name','equalto', lab['lab_name']) | list | length %}
-          {% set avail = computers | selectattr('lab_name','equalto', lab['lab_name']) | selectattr('status','equalto','Available') | list | length %}
-          {% set pct = ((avail / cnt * 100) | int) if cnt > 0 else 0 %}
-          <div class="lab-stat-card" data-lab-id="{{ lab['id'] }}" data-pct="{{ pct }}" data-avail="{{ avail }}" data-cnt="{{ cnt }}">
-            <div class="lab-stat-row">
-              <span class="lab-stat-name">{{ lab['lab_name'] }}</span>
-              <span class="lab-stat-count">{{ avail }}/{{ cnt }}</span>
+      {# ── Lab tabs ── #}
+      <div class="lab-tabs">
+        {% for lab in labs %}
+        <a href="{{ url_for('admin_computers', lab_id=lab['id']) }}"
+           class="lab-tab {{ 'active' if lab['id'] == selected_lab_id | int else '' }}">
+          {{ lab['lab_name'] }}
+        </a>
+        {% endfor %}
+      </div>
+
+      {# ── Panel body ── #}
+      <div class="pc-panel-body">
+
+        {% set selected_lab = labs | selectattr('id','equalto', selected_lab_id | int) | first %}
+        {% set lab_pcs      = computers | selectattr('lab_id','equalto', selected_lab_id | int) | list %}
+        {% set avail_count  = lab_pcs | selectattr('status','equalto','Available') | list | length %}
+        {% set maint_count  = lab_pcs | selectattr('status','equalto','Under Maintenance') | list | length %}
+        {% set inuse_count  = lab_pcs | selectattr('occupied') | list | length %}
+
+        {# header #}
+        <div class="pc-panel-header">
+          <div class="pc-panel-title">
+            <span class="pc-icon">🖥️</span>
+            {{ selected_lab['lab_name'] if selected_lab else 'Laboratory' }} — PC Layout
+          </div>
+          <div class="pc-stats-row">
+            <span class="pc-stat-badge avail"><span class="dot"></span>{{ avail_count }} Available</span>
+            <span class="pc-stat-badge maint"><span class="dot"></span>{{ maint_count }} Maintenance</span>
+            <span class="pc-stat-badge inuse"><span class="dot"></span>{{ inuse_count }} In Use</span>
+            <button class="btn-select-multi" id="btnSelectMulti" onclick="toggleMultiSelect()">☑ Select Multiple</button>
+            <button class="add-pc-toggle" onclick="toggleAddForm()">+ Add PC</button>
+          </div>
+        </div>
+
+        {# flash messages #}
+        {% if error %}<div class="alert-error" style="margin-bottom:12px;">{{ error }}</div>{% endif %}
+        {% if success %}<div class="alert-success" style="margin-bottom:12px;">{{ success }}</div>{% endif %}
+
+        {# ── Add PC form (hidden by default) ── #}
+        <div class="add-pc-form" id="addPcForm">
+          <form method="POST" action="{{ url_for('admin_computers') }}">
+            <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+            <input type="hidden" name="lab_id" value="{{ selected_lab_id }}">
+            <div class="form-row">
+              <div class="form-field">
+                <label>PC Number (e.g. PC-51)</label>
+                <input name="pc_number" placeholder="PC-51" required>
+              </div>
+              <div class="form-field" style="max-width:160px;">
+                <label>Status</label>
+                <select name="status">
+                  <option>Available</option>
+                  <option>Unavailable</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:flex-end; gap:8px;">
+                <button type="submit" class="btn-create" style="padding:8px 20px; font-size:13px;">Add PC</button>
+                <button type="button" class="btn-cancel" style="padding:8px 14px; font-size:13px;" onclick="toggleAddForm()">Cancel</button>
+              </div>
             </div>
-            <div class="lab-stat-track">
-              <div class="lab-stat-bar" data-pct="{{ pct }}"></div>
-            </div>
+          </form>
+        </div>
+
+        {# ── Multi-select action bar ── #}
+        <div class="multi-action-bar" id="multiActionBar">
+          <span id="selectedCount">0 PCs selected</span>
+          <button class="btn-bulk maint"    onclick="bulkAction('maintenance')">🔧 Set Maintenance</button>
+          <button class="btn-bulk restore"  onclick="bulkAction('restore')">✅ Restore</button>
+          <button class="btn-bulk del"      onclick="bulkAction('delete')">🗑 Delete</button>
+          <button class="btn-bulk cancel"   onclick="clearSelection()">✕ Cancel</button>
+        </div>
+
+        {# ── Instructor desk label ── #}
+        <div class="desk-label">— Instructor / Teacher Desk —</div>
+
+        {# ── PC Grid ── #}
+        {% if lab_pcs %}
+        <div class="pc-grid" id="pcGrid">
+          {% for c in lab_pcs %}
+            {% if c['occupied'] %}
+              {% set state = 'occupied' %}
+            {% elif c['status'] == 'Under Maintenance' %}
+              {% set state = 'maintenance' %}
+            {% else %}
+              {% set state = 'available' %}
+            {% endif %}
+          <div class="pc-unit {{ state }}"
+               data-pc-id="{{ c['id'] }}"
+               data-status="{{ c['status'] }}"
+               data-occupied="{{ '1' if c['occupied'] else '0' }}"
+               data-pc-number="{{ c['pc_number'] }}"
+               onclick="handlePcClick(this, event)"
+               oncontextmenu="openCtxMenu(this, event)">
+            <span class="pc-check">✓</span>
+            <span class="pc-status-dot"></span>
+            {# Monitor SVG #}
+            <svg class="pc-monitor" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="40" height="26" rx="3"
+                    fill="{{ '#fbbf2422' if state == 'maintenance' else ('#60a5fa22' if state == 'occupied' else '#4ade8022') }}"
+                    stroke="{{ '#fbbf24' if state == 'maintenance' else ('#60a5fa' if state == 'occupied' else '#4ade80') }}"
+                    stroke-width="1.5"/>
+              <rect x="7" y="6" width="30" height="17" rx="1.5"
+                    fill="{{ '#fbbf2415' if state == 'maintenance' else ('#60a5fa15' if state == 'occupied' else '#4ade8015') }}"/>
+              <rect x="17" y="28" width="10" height="3" rx="1"
+                    fill="{{ '#fbbf2440' if state == 'maintenance' else ('#60a5fa40' if state == 'occupied' else '#4ade8040') }}"/>
+              <rect x="12" y="31" width="20" height="2" rx="1"
+                    fill="{{ '#fbbf2440' if state == 'maintenance' else ('#60a5fa40' if state == 'occupied' else '#4ade8040') }}"/>
+            </svg>
+            <span class="pc-label">{{ c['pc_number'] }}</span>
+            <span class="pc-status-text">
+              {% if c['occupied'] %}IN USE
+              {% elif c['status'] == 'Under Maintenance' %}MAINT.
+              {% else %}OK{% endif %}
+            </span>
           </div>
           {% endfor %}
         </div>
-      </div>
-
-      <!-- RIGHT -->
-      <div class="split-right">
-        <!-- Add PC form -->
-        <h2 class="form-title">Manage Computers</h2>
-        <form method="POST" class="form-card">
-          <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-          <div class="form-row">
-            <div class="form-field">
-              <label>PC Number (e.g. PC-51)</label>
-              <input name="pc_number" placeholder="PC-51" required>
-            </div>
-            <div class="form-field">
-              <label>Laboratory</label>
-              <select name="lab_id" required>
-                {% for lab in labs %}
-                <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id | int %}selected{% endif %}>{{ lab['lab_name'] }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="form-field" style="max-width:160px;">
-              <label>Status</label>
-              <select name="status">
-                <option>Available</option>
-                <option>Unavailable</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn-create" style="margin-top:4px;">+ Add PC</button>
-        </form>
-
-        <!-- Lab selector — plain form submit, no JS needed -->
-        <form method="GET" action="{{ url_for('admin_computers') }}" style="margin-bottom:0;">
-          <div class="lab-bar">
-            <label>🖥️ View Lab:</label>
-            <select name="lab_id" onchange="this.form.submit()">
-              {% for lab in labs %}
-              <option value="{{ lab['id'] }}" {% if lab['id'] == selected_lab_id | int %}selected{% endif %}>
-                {{ lab['lab_name'] }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-        </form>
-
-        <!-- Single lab panel (only show selected lab) -->
-        {% set selected_lab = labs | selectattr('id', 'equalto', selected_lab_id | int) | first %}
-        {% set lab_pcs = computers | selectattr('lab_id', 'equalto', selected_lab_id | int) | list %}
-        
-        {% if selected_lab %}
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <span style="font-size:14px;font-weight:700;color:var(--text);">
-            {{ selected_lab['lab_name'] }}
-            <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
-              {{ lab_pcs | selectattr('status','equalto','Available') | list | length }} available / {{ lab_pcs|length }} total
-            </span>
-          </span>
-        </div>
-
-        {% if lab_pcs %}
-        <div class="pc-table-wrap table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>PC Number</th>
-                <th>Status</th>
-                <th>In Use</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for c in lab_pcs %}
-              <tr>
-                <td>{{ loop.index }}</td>
-                <td><strong>{{ c['pc_number'] }}</strong></td>
-                <td>
-                  {% if c['status'] == 'Under Maintenance' %}
-                    <span class="badge badge-maintenance">🔧 Maintenance</span>
-                  {% elif c['status'] == 'Available' %}
-                    <span class="badge badge-active">Available</span>
-                  {% else %}
-                    <span class="badge badge-done">{{ c['status'] }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if c['occupied'] %}
-                    <span class="badge badge-pending">In Use</span>
-                  {% else %}
-                    <span style="color:var(--muted);font-size:12px;">—</span>
-                  {% endif %}
-                </td>
-                <td style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                  <!-- Maintenance toggle -->
-                  <form method="POST" action="/admin/computers/maintenance/{{ c['id'] }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-                    {% if c['status'] == 'Under Maintenance' %}
-                      <button type="submit" class="btn-maint restore">✅ Restore</button>
-                    {% else %}
-                      <button type="submit" class="btn-maint">🔧 Maintenance</button>
-                    {% endif %}
-                  </form>
-                  <!-- Delete -->
-                  <form method="POST" action="/admin/computers/delete/{{ c['id'] }}" style="display:inline;">
-                    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
-                    <button type="submit" class="btn-delete"
-                      onclick="return confirm('Delete {{ c.pc_number }}?')"
-                      style="font-size:11px;padding:4px 10px;">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
         {% else %}
-        <p style="font-size:13px;color:var(--muted);padding:8px 0;">No PCs in this lab yet. Use the form above to add some.</p>
-        {% endif %}
+        <p style="font-size:13px; color:var(--muted); padding:20px 0; text-align:center;">
+          No PCs in this lab yet. Use the <strong>+ Add PC</strong> button above.
+        </p>
         {% endif %}
 
-      </div><!-- split-right -->
-    </div><!-- admin-split-card -->
-  </main>
+      </div>{# end pc-panel-body #}
+    </div>{# end pc-card #}
+
+  </div>{# end computers-main #}
+
+  {# ── Context menu (right-click single PC) ── #}
+  <div class="pc-ctx-menu" id="pcCtxMenu">
+    <div class="ctx-item" id="ctxToggleMaint" onclick="ctxToggleMaintenance()">🔧 Toggle Maintenance</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="ctxDelete()">🗑 Delete PC</div>
+  </div>
+
+  {# Hidden forms for single PC actions (maintenance toggle & delete) #}
+  <form id="formMaintenance" method="POST" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+  </form>
+  <form id="formDelete" method="POST" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+  </form>
+
+  {# Hidden bulk forms #}
+  <form id="formBulkMaint"    method="POST" action="{{ url_for('admin_computers') }}/bulk_maintenance" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+    <input type="hidden" name="lab_id"     value="{{ selected_lab_id }}">
+    <input type="hidden" name="pc_ids"     id="bulkMaintIds">
+  </form>
+  <form id="formBulkRestore"  method="POST" action="{{ url_for('admin_computers') }}/bulk_restore" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+    <input type="hidden" name="lab_id"     value="{{ selected_lab_id }}">
+    <input type="hidden" name="pc_ids"     id="bulkRestoreIds">
+  </form>
+  <form id="formBulkDelete"   method="POST" action="{{ url_for('admin_computers') }}/bulk_delete" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+    <input type="hidden" name="lab_id"     value="{{ selected_lab_id }}">
+    <input type="hidden" name="pc_ids"     id="bulkDeleteIds">
+  </form>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
-    // Apply dynamic colors to lab stat cards
-    document.querySelectorAll('.lab-stat-card').forEach(function(card) {
-      var pct = parseInt(card.dataset.pct, 10);
-      var color = pct === 100 ? '#22c55e' : pct >= 60 ? '#7b2fbe' : '#f59e0b';
-      card.querySelector('.lab-stat-count').style.color = color;
-      var bar = card.querySelector('.lab-stat-bar');
-      bar.style.width = pct + '%';
-      bar.style.background = color;
-      // Click to switch lab
-      card.addEventListener('click', function() {
-        window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + card.dataset.labId;
-      });
+    /* ── State ── */
+    let multiSelectMode = false;
+    let selectedPcs = new Set();
+    let ctxTargetEl = null;
+
+    /* ── Switch lab via top chips ── */
+    function switchLab(labId) {
+      window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + labId;
+    }
+
+    /* ── Add PC form toggle ── */
+    function toggleAddForm() {
+      const f = document.getElementById('addPcForm');
+      f.classList.toggle('open');
+    }
+
+    /* ── Multi-select toggle ── */
+    function toggleMultiSelect() {
+      multiSelectMode = !multiSelectMode;
+      const btn = document.getElementById('btnSelectMulti');
+      btn.classList.toggle('active', multiSelectMode);
+      btn.textContent = multiSelectMode ? '✕ Cancel Select' : '☑ Select Multiple';
+      if (!multiSelectMode) clearSelection();
+    }
+
+    function clearSelection() {
+      multiSelectMode = false;
+      selectedPcs.clear();
+      document.querySelectorAll('.pc-unit.selected').forEach(el => el.classList.remove('selected'));
+      document.getElementById('multiActionBar').classList.remove('visible');
+      const btn = document.getElementById('btnSelectMulti');
+      btn.classList.remove('active');
+      btn.textContent = '☑ Select Multiple';
+    }
+
+    function updateMultiBar() {
+      const bar = document.getElementById('multiActionBar');
+      const cnt = document.getElementById('selectedCount');
+      if (selectedPcs.size > 0) {
+        bar.classList.add('visible');
+        cnt.textContent = selectedPcs.size + ' PC' + (selectedPcs.size > 1 ? 's' : '') + ' selected';
+      } else {
+        bar.classList.remove('visible');
+      }
+    }
+
+    /* ── PC click handler ── */
+    function handlePcClick(el, e) {
+      if (multiSelectMode) {
+        const id = el.dataset.pcId;
+        if (selectedPcs.has(id)) {
+          selectedPcs.delete(id);
+          el.classList.remove('selected');
+        } else {
+          selectedPcs.add(id);
+          el.classList.add('selected');
+        }
+        updateMultiBar();
+      }
+      // In non-multi mode, single click does nothing (use right-click for context menu)
+    }
+
+    /* ── Context menu ── */
+    function openCtxMenu(el, e) {
+      e.preventDefault();
+      ctxTargetEl = el;
+      const menu = document.getElementById('pcCtxMenu');
+      menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+      menu.style.top  = Math.min(e.clientY, window.innerHeight - 100) + 'px';
+      menu.classList.add('open');
+      // Update label
+      const isMaint = el.dataset.status === 'Under Maintenance';
+      document.getElementById('ctxToggleMaint').textContent =
+        isMaint ? '✅ Restore to Available' : '🔧 Set Maintenance';
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#pcCtxMenu')) {
+        document.getElementById('pcCtxMenu').classList.remove('open');
+      }
     });
-    // Lab dropdown change
-    document.getElementById('labSelect').addEventListener('change', function() {
-      window.location.href = "{{ url_for('admin_computers') }}?lab_id=" + this.value;
-    });
+
+    function ctxToggleMaintenance() {
+      if (!ctxTargetEl) return;
+      document.getElementById('pcCtxMenu').classList.remove('open');
+      const form = document.getElementById('formMaintenance');
+      form.action = '/admin/computers/maintenance/' + ctxTargetEl.dataset.pcId;
+      form.submit();
+    }
+
+    function ctxDelete() {
+      if (!ctxTargetEl) return;
+      if (!confirm('Delete ' + ctxTargetEl.dataset.pcNumber + '?')) return;
+      document.getElementById('pcCtxMenu').classList.remove('open');
+      const form = document.getElementById('formDelete');
+      form.action = '/admin/computers/delete/' + ctxTargetEl.dataset.pcId;
+      form.submit();
+    }
+
+    /* ── Bulk actions ── */
+    function bulkAction(type) {
+      if (selectedPcs.size === 0) { alert('No PCs selected.'); return; }
+      const ids = Array.from(selectedPcs).join(',');
+      if (type === 'delete') {
+        if (!confirm('Delete ' + selectedPcs.size + ' PC(s)? This cannot be undone.')) return;
+        document.getElementById('bulkDeleteIds').value = ids;
+        document.getElementById('formBulkDelete').submit();
+      } else if (type === 'maintenance') {
+        document.getElementById('bulkMaintIds').value = ids;
+        document.getElementById('formBulkMaint').submit();
+      } else if (type === 'restore') {
+        document.getElementById('bulkRestoreIds').value = ids;
+        document.getElementById('formBulkRestore').submit();
+      }
+    }
   </script>
 </body>
 </html>

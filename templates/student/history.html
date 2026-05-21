@@ -39,6 +39,7 @@
       <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
       <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
       <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li><a href="{{ url_for('student_lab_software') }}">Lab Software</a></li>
       <li>
         <a href="{{ url_for('student_notifications') }}">
           Notifications
@@ -89,11 +90,18 @@
                 <td>{{ r['pc_number'] if r['pc_number'] else 'N/A' }}</td>
                 <td>{{ r['duration'] }}</td>
                 <td>
-                  <button class="btn-feedback-row"
-                          data-lab="{{ r['lab'] }}"
-                          data-purpose="{{ r['purpose'] }}"
-                          data-date="{{ r['date'] }}"
-                          data-pc-id="{{ r['pc_id'] if r['pc_id'] else '' }}">Leave Feedback</button>
+                  {% if r['feedback_message'] %}
+                    <span class="feedback-text" style="font-size: 12px; color: var(--muted); font-style: italic; display: inline-block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ r['feedback_message'] }}">
+                      "{{ r['feedback_message'] }}"
+                    </span>
+                  {% else %}
+                    <button class="btn-feedback-row"
+                            data-sitin-id="{{ r['id'] }}"
+                            data-lab="{{ r['lab'] }}"
+                            data-purpose="{{ r['purpose'] }}"
+                            data-date="{{ r['date'] }}"
+                            data-pc-id="{{ r['pc_id'] if r['pc_id'] else '' }}">Leave Feedback</button>
+                  {% endif %}
                 </td>
               </tr>
               {% else %}
@@ -106,7 +114,7 @@
     </div>
   </main>
 
-  <!-- Feedback Modal (with pc_id hidden input) -->
+  <!-- Feedback Modal (with pc_id and sitin_id hidden inputs) -->
   <div class="feedback-modal-overlay" id="feedbackModal">
     <div class="feedback-modal">
       <h3>Leave Feedback</h3>
@@ -117,6 +125,7 @@
         <input type="hidden" name="purpose" id="modal-purpose-input" />
         <input type="hidden" name="date" id="modal-date-input" />
         <input type="hidden" name="pc_id" id="modal-pc-input" />
+        <input type="hidden" name="sitin_id" id="modal-sitin-input" />
         <textarea name="message" rows="5" placeholder="Share your experience..." required></textarea>
         <div class="feedback-modal-actions">
           <button type="button" class="btn-cancel" onclick="closeFeedback()">Cancel</button>
@@ -137,13 +146,15 @@
       const modalPurpose = document.getElementById('modal-purpose-input');
       const modalDate = document.getElementById('modal-date-input');
       const modalPcInput = document.getElementById('modal-pc-input');
+      const modalSitinInput = document.getElementById('modal-sitin-input');
 
-      function openFeedback(lab, purpose, date, pcId) {
+      function openFeedback(lab, purpose, date, pcId, sitinId) {
         modalInfo.textContent = `Lab ${lab} · ${purpose} · ${date}`;
         modalLab.value = lab;
         modalPurpose.value = purpose;
         modalDate.value = date;
         modalPcInput.value = pcId || '';
+        modalSitinInput.value = sitinId || '';
         modal.classList.add('open');
       }
 
@@ -152,7 +163,8 @@
           btn.dataset.lab,
           btn.dataset.purpose,
           btn.dataset.date,
-          btn.dataset.pcId
+          btn.dataset.pcId,
+          btn.dataset.sitinId
         ));
       });
     });

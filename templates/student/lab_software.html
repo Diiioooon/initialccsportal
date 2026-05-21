@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCS | Lab Software</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    body { margin: 0; }
+    .theme-toggle-float {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px; border-radius: 50%;
+      background: #e6a817; color: #1a1a1a; border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    html[data-theme="dark"] .theme-toggle-float { background: #f1c40f; }
+    .notification-badge { background-color: #ef4444; color: white; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: bold; margin-left: 6px; display: inline-block; vertical-align: middle; }
+
+    /* ── Page Layout ── */
+    .sw-page { max-width: 1100px; margin: 0 auto; padding: 28px 24px 60px; }
+    .sw-page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+    }
+    .sw-page-header h2 {
+      font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+      color: var(--text); margin: 0; display: flex; align-items: center; gap: 10px;
+    }
+    .sw-page-header h2 .icon { font-size: 26px; }
+
+    /* ── Lab selector tabs ── */
+    .lab-tabs {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px;
+      padding: 14px 18px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: 14px;
+    }
+    .lab-tab {
+      padding: 9px 20px; border-radius: 10px; font-size: 13px; font-weight: 700;
+      color: var(--muted); background: transparent;
+      border: 1px solid var(--border); cursor: pointer;
+      transition: all 0.2s ease; text-decoration: none;
+      font-family: 'DM Sans', sans-serif; letter-spacing: 0.2px;
+    }
+    .lab-tab:hover {
+      background: rgba(123, 47, 190, 0.08); border-color: rgba(123, 47, 190, 0.3);
+      color: var(--text);
+    }
+    .lab-tab.active {
+      background: linear-gradient(135deg, #7b2fbe, #9333ea);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 4px 14px rgba(123, 47, 190, 0.35);
+    }
+
+    /* ── Stats bar ── */
+    .sw-stats {
+      display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .sw-stat-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 10px 18px;
+    }
+    .sw-stat-chip .stat-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .sw-stat-chip .stat-icon.purple { background: rgba(123, 47, 190, 0.15); }
+    .sw-stat-chip .stat-icon.gold { background: rgba(230, 168, 23, 0.15); }
+    .sw-stat-chip .stat-icon.green { background: rgba(34, 197, 94, 0.15); }
+    .sw-stat-chip .stat-info .stat-num {
+      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+      color: var(--text); line-height: 1;
+    }
+    .sw-stat-chip .stat-info .stat-label {
+      font-size: 10px; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 1px; margin-top: 2px;
+    }
+
+    /* ── Search bar ── */
+    .sw-search-bar {
+      position: relative; margin-bottom: 24px;
+    }
+    .sw-search-bar input {
+      width: 100%; box-sizing: border-box;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 13px 18px 13px 44px;
+      font-size: 14px; color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s;
+    }
+    .sw-search-bar input:focus { outline: none; border-color: #7b2fbe; }
+    .sw-search-bar input::placeholder { color: var(--muted); }
+    .sw-search-bar .search-icon {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: var(--muted); pointer-events: none;
+    }
+
+    /* ── Category sections ── */
+    .cat-section { margin-bottom: 20px; }
+    .cat-header {
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted); padding: 10px 0 8px;
+      border-bottom: 1px solid var(--border); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cat-count {
+      background: rgba(123, 47, 190, 0.15); color: #a855f7;
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ── Software grid ── */
+    .sw-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+    }
+    .sw-card {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px; border-radius: 12px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      transition: all 0.2s ease;
+    }
+    .sw-card:hover {
+      border-color: rgba(123, 47, 190, 0.4);
+      background: rgba(123, 47, 190, 0.06);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    .sw-icon-box {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .sw-icon-box.dev { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.15)); }
+    .sw-icon-box.db { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(245,158,11,0.15)); }
+    .sw-icon-box.net { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(6,182,212,0.15)); }
+    .sw-icon-box.office { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(244,63,94,0.15)); }
+    .sw-icon-box.design { background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15)); }
+    .sw-icon-box.browser { background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(14,165,233,0.15)); }
+    .sw-icon-box.other { background: linear-gradient(135deg, rgba(148,163,184,0.15), rgba(107,114,128,0.15)); }
+
+    .sw-details { min-width: 0; flex: 1; }
+    .sw-name {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      line-height: 1.3; word-break: break-word;
+    }
+    .sw-meta {
+      font-size: 11px; color: var(--muted); margin-top: 3px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .sw-version-badge {
+      background: rgba(123, 47, 190, 0.12); color: #a855f7;
+      font-size: 10px; font-weight: 700; padding: 1px 7px;
+      border-radius: 6px; white-space: nowrap;
+    }
+    .sw-license-badge {
+      font-size: 10px; font-weight: 600; padding: 1px 7px;
+      border-radius: 6px; white-space: nowrap;
+    }
+    .sw-license-badge.free {
+      background: rgba(34, 197, 94, 0.12); color: #22c55e;
+    }
+    .sw-license-badge.licensed {
+      background: rgba(234, 179, 8, 0.12); color: #eab308;
+    }
+
+    /* ── Empty state ── */
+    .sw-empty-state {
+      text-align: center; padding: 80px 20px;
+      color: var(--muted);
+    }
+    .sw-empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.6; }
+    .sw-empty-state .empty-title {
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .sw-empty-state .empty-desc { font-size: 13px; max-width: 400px; margin: 0 auto; line-height: 1.5; }
+
+    /* ── No-match from search ── */
+    .no-match { display: none; text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+    .no-match.show { display: block; }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .sw-card { animation: fadeInUp 0.35s ease both; }
+    .sw-card:nth-child(2) { animation-delay: 0.03s; }
+    .sw-card:nth-child(3) { animation-delay: 0.06s; }
+    .sw-card:nth-child(4) { animation-delay: 0.09s; }
+    .sw-card:nth-child(5) { animation-delay: 0.12s; }
+    .sw-card:nth-child(6) { animation-delay: 0.15s; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .sw-grid { grid-template-columns: 1fr 1fr; }
+      .sw-page { padding: 16px 12px 60px; }
+      .lab-tabs { gap: 6px; padding: 10px 12px; }
+      .lab-tab { padding: 7px 14px; font-size: 12px; }
+    }
+    @media (max-width: 480px) {
+      .sw-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC" class="nav-logo" />
+      <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS" class="nav-logo" />
+      <span class="nav-title">College of Computer Studies Sit-in Monitoring System</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('student_home') }}">Home</a></li>
+      <li><a href="{{ url_for('student_profile') }}">Edit Profile</a></li>
+      <li><a href="{{ url_for('student_history') }}">Sit-in History</a></li>
+      <li><a href="{{ url_for('student_labrules') }}">Lab Rules</a></li>
+      <li><a href="{{ url_for('student_reservation') }}">Reservation</a></li>
+      <li><a href="{{ url_for('student_rewards') }}">Rewards</a></li>
+      <li><a href="{{ url_for('student_lab_availability') }}">Lab Availability</a></li>
+      <li><a href="{{ url_for('student_lab_software') }}" class="active">Lab Software</a></li>
+      <li>
+        <a href="{{ url_for('student_notifications') }}">
+          Notifications
+          {% if unread_count > 0 %}<span class="notification-badge">{{ unread_count }}</span>{% endif %}
+        </a>
+      </li>
+      <li><a href="{{ url_for('logout') }}" class="btn-nav-logout">Log out</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <div class="sw-page">
+      <!-- Header -->
+      <div class="sw-page-header">
+        <h2><span class="icon">📦</span> Lab Software</h2>
+      </div>
+
+      <!-- Lab selector tabs -->
+      <div class="lab-tabs">
+        {% for lab in labs %}
+        <a href="{{ url_for('student_lab_software', lab_id=lab['id']) }}"
+           class="lab-tab {% if lab['id'] == selected_lab_id %}active{% endif %}">
+          {{ lab['lab_name'] }}
+        </a>
+        {% endfor %}
+      </div>
+
+      {% if software_list %}
+      <!-- Stats -->
+      <div class="sw-stats">
+        <div class="sw-stat-chip">
+          <div class="stat-icon purple">📦</div>
+          <div class="stat-info">
+            <div class="stat-num">{{ software_list|length }}</div>
+            <div class="stat-label">Total Software</div>
+          </div>
+        </div>
+        <div class="sw-stat-chip">
+          <div class="stat-icon green">🆓</div>
+          <div class="stat-info">
+            <div class="stat-num">{{ free_count }}</div>
+            <div class="stat-label">Free / Open Source</div>
+          </div>
+        </div>
+        <div class="sw-stat-chip">
+          <div class="stat-icon gold">🔑</div>
+          <div class="stat-info">
+            <div class="stat-num">{{ licensed_count }}</div>
+            <div class="stat-label">Licensed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="sw-search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="sw-search" placeholder="Search software in {{ selected_lab_name }}..." autocomplete="off" />
+      </div>
+
+      <!-- Software by category -->
+      <div id="sw-container">
+        {% set categories = [
+          ('💻 Programming & Development', 'dev', ['Visual Studio Code','Visual Studio 2022','Dev-C++','Eclipse IDE','PyCharm Community','NetBeans IDE','Android Studio','Git','XAMPP','Node.js','Python','Java JDK']),
+          ('🗄️ Database Tools', 'db', ['MySQL Workbench','SQLite Browser','HeidiSQL']),
+          ('🌐 Network & Security', 'net', ['Cisco Packet Tracer','Wireshark','PuTTY','VirtualBox','VMware Workstation Player']),
+          ('📄 Office & Productivity', 'office', ['Microsoft Office 2021','LibreOffice','Notepad++','7-Zip']),
+          ('🎨 Design & Media', 'design', ['Adobe Photoshop','Adobe Illustrator','Figma','GIMP']),
+          ('🌍 Browsers', 'browser', ['Google Chrome','Mozilla Firefox']),
+          ('📦 Other', 'other', [])
+        ] %}
+        {% set all_known = [] %}
+        {% for _, _, names in categories[:-1] %}{% for n in names %}{% set _ = all_known.append(n) %}{% endfor %}{% endfor %}
+
+        {% for cat_label, cat_class, cat_names in categories %}
+          {% set cat_sw = [] %}
+          {% for sw in software_list %}
+            {% if cat_label == '📦 Other' %}
+              {% if sw['name'] not in all_known %}{% set _ = cat_sw.append(sw) %}{% endif %}
+            {% else %}
+              {% if sw['name'] in cat_names %}{% set _ = cat_sw.append(sw) %}{% endif %}
+            {% endif %}
+          {% endfor %}
+          {% if cat_sw %}
+          <div class="cat-section" data-category="{{ cat_label }}">
+            <div class="cat-header">
+              {{ cat_label }}
+              <span class="cat-count">{{ cat_sw|length }}</span>
+            </div>
+            <div class="sw-grid">
+              {% for sw in cat_sw %}
+              <div class="sw-card" data-name="{{ sw['name']|lower }}">
+                <div class="sw-icon-box {{ cat_class }}">
+                  {% if cat_class == 'dev' %}💻{% elif cat_class == 'db' %}🗄️{% elif cat_class == 'net' %}🌐{% elif cat_class == 'office' %}📄{% elif cat_class == 'design' %}🎨{% elif cat_class == 'browser' %}🌍{% else %}📦{% endif %}
+                </div>
+                <div class="sw-details">
+                  <div class="sw-name">{{ sw['name'] }}</div>
+                  <div class="sw-meta">
+                    {% if sw['version'] %}
+                    <span class="sw-version-badge">v{{ sw['version'] }}</span>
+                    {% endif %}
+                    {% if sw['license'] %}
+                    <span class="sw-license-badge {% if 'free' in sw['license']|lower or 'open' in sw['license']|lower %}free{% else %}licensed{% endif %}">
+                      {{ sw['license'] }}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="no-match" id="no-match">
+        <p>🔍 No software matching your search in this lab.</p>
+      </div>
+
+      {% else %}
+      <!-- Empty state -->
+      <div class="sw-empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No software assigned yet</div>
+        <div class="empty-desc">
+          There are currently no software titles assigned to <strong>{{ selected_lab_name }}</strong>.
+          Please check back later or contact the lab administrator.
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <footer>&copy; 2026 University of Cebu — College of Computer Studies</footer>
+  <button id="theme-toggle" class="theme-toggle-float">🌙</button>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
+    // Live search filter
+    const searchInput = document.getElementById('sw-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.sw-card');
+        const sections = document.querySelectorAll('.cat-section');
+        let totalVisible = 0;
+
+        cards.forEach(card => {
+          const name = card.getAttribute('data-name');
+          const match = !query || name.includes(query);
+          card.style.display = match ? '' : 'none';
+          if (match) totalVisible++;
+        });
+
+        // Hide empty category sections
+        sections.forEach(section => {
+          const visibleCards = section.querySelectorAll('.sw-card:not([style*="display: none"])');
+          section.style.display = visibleCards.length ? '' : 'none';
+        });
+
+        // Show/hide no-match message
+        const noMatch = document.getElementById('no-match');
+        if (noMatch) {
+          noMatch.classList.toggle('show', totalVisible === 0 && query.length > 0);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

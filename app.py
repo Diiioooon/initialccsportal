@@ -124,12 +124,20 @@ def init_db():
         name TEXT NOT NULL,
         message TEXT NOT NULL,
         lab TEXT,
-        date TEXT NOT NULL DEFAULT (DATE('now'))
+        date TEXT NOT NULL DEFAULT (DATE('now')),
+        pc_id INTEGER,
+        sitin_id INTEGER
     )''')
 
     # Add pc_id column to feedback if missing
     try:
         conn.execute('ALTER TABLE feedback ADD COLUMN pc_id INTEGER')
+    except:
+        pass
+
+    # Add sitin_id column to feedback if missing
+    try:
+        conn.execute('ALTER TABLE feedback ADD COLUMN sitin_id INTEGER')
     except:
         pass
 
@@ -636,24 +644,27 @@ def student_history():
         message = request.form['message'].strip()
         lab = request.form.get('lab', '').strip()
         pc_id = request.form.get('pc_id', '').strip()
+        sitin_id = request.form.get('sitin_id', '').strip()
         if not message:
             error = 'Feedback cannot be empty.'
         else:
             conn = get_db()
-            conn.execute('INSERT INTO feedback (idnum, name, message, lab, pc_id) VALUES (?, ?, ?, ?, ?)',
+            conn.execute('INSERT INTO feedback (idnum, name, message, lab, pc_id, sitin_id) VALUES (?, ?, ?, ?, ?, ?)',
                          (session['user_idnum'], session['user_name'], message,
                           lab if lab else None,
-                          pc_id if pc_id else None))
+                          pc_id if pc_id else None,
+                          int(sitin_id) if sitin_id else None))
             conn.commit()
             conn.close()
             success = 'Feedback submitted!'
 
     conn = get_db()
-    # Get history with PC number
+    # Get history with PC number and feedback (with fallback for legacy records)
     rows = conn.execute('''
-        SELECT sr.*, cu.pc_number
+        SELECT sr.*, cu.pc_number, f.message as feedback_message
         FROM sitin_reports sr
         LEFT JOIN computer_units cu ON sr.pc_id = cu.id
+        LEFT JOIN feedback f ON f.sitin_id = sr.id OR (f.sitin_id IS NULL AND f.idnum = sr.idnum AND f.lab = sr.lab AND f.date = sr.date)
         WHERE sr.idnum = ?
         ORDER BY sr.id DESC
     ''', (session['user_idnum'],)).fetchall()
@@ -728,9 +739,61 @@ def student_lab_availability():
             WHERE cu.lab_id = ?
             ORDER BY cu.pc_number
         ''', (lab['id'],)).fetchall()
-        availability.append({'lab': lab, 'computers': computers})
+        software = conn.execute('''
+            SELECT sw.name, sw.version, sw.license
+            FROM lab_software ls
+            JOIN software sw ON sw.id = ls.software_id
+            WHERE ls.lab_id = ?
+            ORDER BY sw.name
+        ''', (lab['id'],)).fetchall()
+        availability.append({'lab': lab, 'computers': computers, 'software': software})
     conn.close()
     return render_template('student/lab_availability.html', availability=availability)
+
+@app.route('/student/lab_software')
+def student_lab_software():
+    if not student_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    labs = conn.execute("SELECT * FROM laboratory WHERE lab_name LIKE 'Lab 5%' ORDER BY lab_name").fetchall()
+
+    # Which lab is selected
+    try:
+        raw_lab_id = request.args.get('lab_id')
+        selected_lab_id = int(raw_lab_id) if raw_lab_id else (labs[0]['id'] if labs else 0)
+    except (ValueError, TypeError):
+        selected_lab_id = labs[0]['id'] if labs else 0
+
+    # Get the lab name for display
+    selected_lab_name = ''
+    for lab in labs:
+        if lab['id'] == selected_lab_id:
+            selected_lab_name = lab['lab_name']
+            break
+
+    # Get software assigned to this lab
+    software_list = []
+    if selected_lab_id:
+        software_list = conn.execute('''
+            SELECT sw.id, sw.name, sw.version, sw.license
+            FROM lab_software ls
+            JOIN software sw ON sw.id = ls.software_id
+            WHERE ls.lab_id = ?
+            ORDER BY sw.name
+        ''', (selected_lab_id,)).fetchall()
+
+    # Count free vs licensed
+    free_count = sum(1 for sw in software_list if sw['license'] and ('free' in sw['license'].lower() or 'open' in sw['license'].lower()))
+    licensed_count = len(software_list) - free_count
+
+    conn.close()
+    return render_template('student/lab_software.html',
+                           labs=labs,
+                           software_list=software_list,
+                           selected_lab_id=selected_lab_id,
+                           selected_lab_name=selected_lab_name,
+                           free_count=free_count,
+                           licensed_count=licensed_count)
 
 # ---------- Admin routes ----------
 def admin_required():
@@ -1487,6 +1550,51 @@ def toggle_maintenance(pc_id):
     conn.close()
     return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
 
+@app.route('/admin/computers/bulk_maintenance', methods=['POST'])
+def bulk_maintenance():
+    if not admin_required():
+        return redirect(url_for('login'))
+    pc_ids = request.form.get('pc_ids', '').split(',')
+    lab_id = request.form.get('lab_id')
+    conn = get_db()
+    for pc_id in pc_ids:
+        pc_id = pc_id.strip()
+        if pc_id:
+            conn.execute("UPDATE computer_units SET status='Under Maintenance' WHERE id=?", (pc_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
+
+@app.route('/admin/computers/bulk_restore', methods=['POST'])
+def bulk_restore():
+    if not admin_required():
+        return redirect(url_for('login'))
+    pc_ids = request.form.get('pc_ids', '').split(',')
+    lab_id = request.form.get('lab_id')
+    conn = get_db()
+    for pc_id in pc_ids:
+        pc_id = pc_id.strip()
+        if pc_id:
+            conn.execute("UPDATE computer_units SET status='Available' WHERE id=?", (pc_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
+
+@app.route('/admin/computers/bulk_delete', methods=['POST'])
+def bulk_delete():
+    if not admin_required():
+        return redirect(url_for('login'))
+    pc_ids = request.form.get('pc_ids', '').split(',')
+    lab_id = request.form.get('lab_id')
+    conn = get_db()
+    for pc_id in pc_ids:
+        pc_id = pc_id.strip()
+        if pc_id:
+            conn.execute("DELETE FROM computer_units WHERE id=?", (pc_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('admin_computers', lab_id=lab_id) if lab_id else url_for('admin_computers'))
+
 @app.route('/admin/pc/<int:pc_id>/software', methods=['GET', 'POST'])
 def assign_software(pc_id):
     if not admin_required():
@@ -1528,6 +1636,25 @@ def assign_software(pc_id):
                            pc=pc, all_software=all_software, assigned_ids=assigned_ids, error=error, success=success)
 
 # ---------- Export routes ----------
+
+@app.route('/admin/reports/export/pdf')
+def export_reports_pdf():
+    if not admin_required():
+        return redirect(url_for('login'))
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT sr.*, cu.pc_number
+        FROM sitin_reports sr
+        LEFT JOIN computer_units cu ON sr.pc_id = cu.id
+        ORDER BY sr.id DESC
+    ''').fetchall()
+    conn.close()
+    headers = ['ID', 'ID Number', 'Name', 'Purpose', 'Lab', 'PC', 'Session', 'Date', 'Time In', 'Time Out']
+    data = [[r['id'], r['idnum'], r['name'], r['purpose'], r['lab'],
+             r['pc_number'] or '—', r['session'], r['date'],
+             r['time_in'] or '', r['time_out'] or ''] for r in rows]
+    return generate_pdf('Sit-in Reports', headers, data, 'sitin_reports.pdf')
+
 @app.route('/admin/reservations/export/pdf')
 def export_reservations_pdf():
     if not admin_required():
@@ -1550,17 +1677,21 @@ def export_reservations_csv():
     data = [[r['id'], r['idnum'], r['name'], r['lab'], r['purpose'], r['date'], r['time'], r['status']] for r in rows]
     return generate_csv(headers, data, 'reservations.csv')
 
-@app.route('/admin/reports/export/pdf')
-def export_reports_pdf():
+@app.route('/admin/reports/preview')
+def reports_preview():
     if not admin_required():
         return redirect(url_for('login'))
     conn = get_db()
-    rows = conn.execute('SELECT * FROM sitin_reports ORDER BY id DESC').fetchall()
+    records = conn.execute('''
+        SELECT sr.*, cu.pc_number, u.course
+        FROM sitin_reports sr
+        LEFT JOIN computer_units cu ON sr.pc_id = cu.id
+        LEFT JOIN users u ON sr.idnum = u.idnum
+        ORDER BY sr.id DESC
+    ''').fetchall()
     conn.close()
-    headers = ['ID', 'ID Number', 'Name', 'Purpose', 'Lab', 'Session', 'Date', 'Time In', 'Time Out']
-    data = [[r['id'], r['idnum'], r['name'], r['purpose'], r['lab'], r['session'], r['date'],
-             r['time_in'] or '', r['time_out'] or ''] for r in rows]
-    return generate_pdf('Sit-in Reports', headers, data, 'sitin_reports.pdf')
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return render_template('admin/report_preview.html', records=records, date_generated=now)
 
 @app.route('/admin/reports/export/csv')
 def export_reports_csv():

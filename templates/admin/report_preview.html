@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sit-in Report Preview — CCS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    /* ── Page shell ── */
+    .preview-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--bg, #f4f4f4);
+    }
+
+    /* ── Top action bar (matches nav colors) ── */
+    .preview-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--navy, #1a3a6b);
+      padding: 12px 28px;
+      gap: 12px;
+    }
+    .preview-topbar-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      white-space: nowrap;
+    }
+    .preview-topbar-title span {
+      font-size: 18px;
+    }
+    .preview-topbar-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      color: var(--navy, #1a3a6b);
+      border: none;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-print:hover { background: #e8eef8; }
+    .btn-csv-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--gold, #e6a817);
+      color: #1a1a1a;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-csv-preview:hover { background: var(--gold-hover, #d4960f); }
+    .btn-back-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-back-preview:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Report document area ── */
+    .preview-body {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 30px 20px 50px;
+    }
+    .report-doc {
+      background: #fff;
+      width: 100%;
+      max-width: 960px;
+      padding: 36px 44px 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    /* ── Report header with logos ── */
+    .report-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .report-logo-left img {
+      height: 72px;
+      width: auto;
+      object-fit: contain;
+    }
+    .report-header-center {
+      text-align: center;
+      flex: 1;
+      padding: 0 20px;
+    }
+    .report-header-center h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--navy, #1a3a6b);
+      margin: 0 0 2px;
+      font-family: 'Syne', sans-serif;
+    }
+    .report-header-center .report-subtitle {
+      font-size: 12px;
+      color: #555;
+      margin: 0;
+    }
+    .report-header-center .report-date {
+      font-size: 12px;
+      color: #555;
+      margin: 2px 0 0;
+    }
+    .report-logo-right img {
+      height: 72px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    /* ── Divider ── */
+    .report-divider {
+      border: none;
+      border-top: 2.5px solid var(--navy, #1a3a6b);
+      margin: 12px 0 20px;
+    }
+
+    /* ── Table ── */
+    .report-table-wrap {
+      overflow-x: auto;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .report-table thead tr {
+      background: var(--navy, #1a3a6b);
+      color: #fff;
+    }
+    .report-table th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .report-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e8e8e8;
+      color: #222;
+    }
+    .report-table tbody tr:nth-child(even) {
+      background: #f7f7fb;
+    }
+    .report-table tbody tr:hover {
+      background: #eef1fb;
+    }
+    .report-table td:first-child {
+      font-weight: 700;
+      color: var(--navy, #1a3a6b);
+    }
+
+    /* ── Footer ── */
+    .report-footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 11px;
+      color: #888;
+      border-top: 1px solid #e8e8e8;
+      padding-top: 14px;
+    }
+
+    /* ── No data ── */
+    .report-no-data {
+      text-align: center;
+      padding: 40px 0;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      .preview-topbar { display: none !important; }
+      .preview-body { padding: 0; }
+      .report-doc {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 24px 28px;
+        max-width: 100%;
+      }
+      .report-table { font-size: 11px; }
+      .report-table th, .report-table td { padding: 7px 9px; }
+    }
+  </style>
+</head>
+<body>
+<div class="preview-shell">
+
+  <!-- Top action bar -->
+  <div class="preview-topbar">
+    <div class="preview-topbar-title">
+      <span>📄</span> Sit-in Report Preview
+    </div>
+    <div class="preview-topbar-actions">
+      <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+      <a href="{{ url_for('export_reports_csv') }}" class="btn-csv-preview">⬇ Export CSV</a>
+      <a href="{{ url_for('admin_reports') }}" class="btn-back-preview">← Back</a>
+    </div>
+  </div>
+
+  <!-- Report document -->
+  <div class="preview-body">
+    <div class="report-doc">
+
+      <!-- Header with both logos -->
+      <div class="report-header">
+        <div class="report-logo-left">
+          <img src="{{ url_for('static', filename='ccsmainlogo.png') }}" alt="CCS Logo" />
+        </div>
+        <div class="report-header-center">
+          <h1>University of Cebu — College of Computer Studies</h1>
+          <p class="report-subtitle">CCS Sit-in Monitoring System — Generated Report</p>
+          <p class="report-date">Date Generated: {{ date_generated }}</p>
+        </div>
+        <div class="report-logo-right">
+          <img src="{{ url_for('static', filename='uclogo.png') }}" alt="UC Logo" />
+        </div>
+      </div>
+
+      <hr class="report-divider" />
+
+      <!-- Table -->
+      <div class="report-table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>ID Number</th>
+              <th>Name</th>
+              <th>Course</th>
+              <th>Purpose</th>
+              <th>Lab</th>
+              <th>Session</th>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ r['idnum'] }}</td>
+              <td>{{ r['name'] }}</td>
+              <td>{{ r['course'] or '—' }}</td>
+              <td>{{ r['purpose'] }}</td>
+              <td>{{ r['lab'] }}</td>
+              <td>{{ r['session'] }}</td>
+              <td>{{ r['date'] }}</td>
+              <td>{{ r['time_in'] or '—' }}</td>
+              <td>{{ r['time_out'] or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="10" class="report-no-data">No sit-in records found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="report-footer">
+        CCS Sit-in Monitoring System &middot; University of Cebu &middot; College of Computer Studies
+      </div>
+
+    </div>
+  </div>
+
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
