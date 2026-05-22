@@ -101,7 +101,7 @@
                 <th>Time</th>
                 <th>PC</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style="min-width:140px;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -126,6 +126,7 @@
                   {% endif %}
                 </td>
                 <td>
+                  <div style="display:flex; flex-direction:row; gap:6px; align-items:center; flex-wrap:nowrap;">
                   {% if r['status'] == 'Pending' %}
                     <a href="{{ url_for('approve_reservation', reservation_id=r['id']) }}"
                        class="btn-edit"
@@ -138,6 +139,7 @@
                        class="btn-delete"
                        onclick="return confirm('Delete this reservation?')">Delete</a>
                   {% endif %}
+                  </div>
                 </td>
               </tr>
               {% else %}

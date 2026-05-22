@@ -5,6 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CCS Admin | Sit-in Reports</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    /* ── Sit-in Reports purple theme ── */
+    .admin-split-card .split-right {
+      background: linear-gradient(160deg, #2a0050 0%, #1a0035 60%, #0d001f 100%) !important;
+      color: #fff !important;
+    }
+
+    .admin-split-card .split-right .form-title {
+      color: #fff !important;
+    }
+
+    .admin-split-card .split-right .table-wrap {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    .admin-split-card .split-right .admin-table {
+      background: rgba(255,255,255,0.04) !important;
+      color: #f0e6ff !important;
+    }
+
+    .admin-split-card .split-right .admin-table thead {
+      background: linear-gradient(90deg, #7b2fbe, #a855f7) !important;
+      color: #fff !important;
+    }
+
+    .admin-split-card .split-right .admin-table td {
+      border-bottom: 1px solid rgba(168, 85, 247, 0.2) !important;
+      color: #e9d5ff !important;
+    }
+
+    .admin-split-card .split-right .admin-table tbody tr:hover {
+      background: rgba(168, 85, 247, 0.12) !important;
+    }
+
+    .admin-split-card .split-right .admin-table tbody tr:nth-child(even) {
+      background: rgba(123, 47, 190, 0.08) !important;
+    }
+
+    .admin-split-card .split-right .no-data {
+      color: rgba(255,255,255,0.5) !important;
+    }
+
+    .admin-split-card .split-right .btn-danger {
+      background: rgba(230, 168, 23, 0.9) !important;
+      color: #1a1a1a !important;
+    }
+    .admin-split-card .split-right .btn-danger:hover {
+      background: #e6a817 !important;
+    }
+
+    .admin-split-card .split-right .btn-delete {
+      background: rgba(230, 168, 23, 0.85) !important;
+      color: #1a1a1a !important;
+    }
+    .admin-split-card .split-right .btn-delete:hover {
+      background: #e6a817 !important;
+    }
+
+    .admin-split-card .split-right .student-info-box {
+      background: rgba(255,255,255,0.07) !important;
+      border: 1px solid rgba(168,85,247,0.3) !important;
+      border-radius: 10px;
+      padding: 10px 16px;
+    }
+  </style>
 </head>
 <body>
   <nav>
